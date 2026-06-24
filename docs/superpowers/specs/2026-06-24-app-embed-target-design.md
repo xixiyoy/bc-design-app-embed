@@ -117,6 +117,9 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
   - Add a temporary hide class (e.g. `bc-design-embed--pending`) on `[data-bc-design-embed]` wrappers via inline style or small critical CSS in each block until `BCDesignEmbedPlacement.run()` completes.
   - Run placement as early as safely possible (`DOMContentLoaded` or immediately if document already interactive).
   - Always remove the hide class after `run()` finishes, even when one embed is missing or empty.
+  - **Per-block inline Liquid `setTimeout` fallback (3s) is required** in each embed block — embeds become visible even if the placement script 404s or fails to load.
+  - **Placement-script `scheduleRevealFallback()`** is an additional safety net when the script loads.
+  - **`revealEmbeds()` must cancel per-embed `data-bc-design-reveal-fallback` timers** when placement reveals early.
   - **Fail-open (required):** if placement fails, prefer visible misplaced content over permanently hidden embeds.
     - Wrap placement execution in `try/catch/finally`; `revealEmbeds()` must run in `finally`.
     - Schedule a short timeout fallback (e.g. 3000ms) that removes `bc-design-embed--pending` from all `[data-bc-design-embed]` nodes if `run()` never completes.
@@ -250,6 +253,17 @@ New file. Small, no dependencies. Implements the contract in **DOM placement str
 
 ```js
 // Pseudocode — implementation guide
+function findInsertAnchor() {
+  const skip = document.querySelector('a[href="#MainContent"], .skip-to-content, [class*="skip"]');
+  if (skip) return { node: skip, position: 'after' };
+  const main = document.querySelector('main, #MainContent, .shopify-section');
+  if (main) return { node: main, position: 'before' };
+  return { node: null, position: 'prepend' };
+}
+
+// Returns true when nav/banner blocks are already in correct order — run() must no-op moves.
+function isPlacementCorrect(navBlock, bannerBlock, anchor) { /* see Task 2 Step 4 */ }
+
 window.BCDesignEmbedPlacement = window.BCDesignEmbedPlacement || {
   run() {
     try {
@@ -257,26 +271,22 @@ window.BCDesignEmbedPlacement = window.BCDesignEmbedPlacement || {
       const bannerEmbed = document.querySelector('[data-bc-design-embed="banner"]');
       const navBlock = navEmbed?.closest('[id^="shopify-block-"]');
       const bannerBlock = bannerEmbed?.closest('[id^="shopify-block-"]');
-      const insertAfter = findAccessibilityAnchor(); // skip links, etc.
-      moveBlock(navBlock, insertAfter);
-      moveBlock(bannerBlock, navBlock);
-      applyBannerSpacing(navBlock, bannerBlock); // no margin-top when nav min-height reserves flow
+      const anchor = findInsertAnchor();
+
+      if (!isPlacementCorrect(navBlock, bannerBlock, anchor)) {
+        moveBlock(navBlock, anchor);
+        moveBlock(bannerBlock, navBlock ? { node: navBlock, position: 'after' } : anchor);
+      }
+
+      applyBannerSpacing(navEmbed, bannerBlock);
     } catch (error) {
       console.warn('[BC Design] embed placement failed', error);
     } finally {
-      revealEmbeds(); // always fail-open
+      revealEmbeds();
       cancelRevealFallback();
     }
   },
 };
-// scheduleRevealFallback(3000) on first load; cleared when revealEmbeds() runs
-if (!window.__BC_DESIGN_EMBED_PLACEMENT_LOADED__) {
-  window.__BC_DESIGN_EMBED_PLACEMENT_LOADED__ = true;
-  const start = () => window.BCDesignEmbedPlacement.run();
-  document.readyState === 'loading'
-    ? document.addEventListener('DOMContentLoaded', start, { once: true })
-    : start();
-}
 ```
 
 - Safe when loaded from both navigation and banner blocks on the same page.
