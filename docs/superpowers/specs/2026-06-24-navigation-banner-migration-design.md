@@ -468,6 +468,30 @@ Theme extension files to migrate from the legacy extension:
 - `assets/cursor-nav-prev.svg`
 - `assets/cursor-nav-next.svg`
 
+## Task 1 Spike Findings
+
+Date: 2026-06-24.
+
+Completed:
+
+- Added the minimal spike app-owned metaobject definitions to `shopify.app.toml` for `$app:navigation_config`, `$app:banner_config`, and `$app:banner_slide`.
+- `shopify app config validate --path . --json` returned `{"valid": true, "issues": []}` with the spike definitions in `shopify.app.toml`.
+- No temporary Liquid storefront diagnostic was left in `extensions/bc-design-theme/blocks/floating_demo.liquid`.
+
+Blocked manual verification:
+
+- `npm run dev:localhost` uses `shopify.app.localhost.toml`, which still contains the template custom data definitions. Task 1 only allowed changing `shopify.app.toml`, so the localhost dev config does not yet mirror the spike definitions.
+- Running `npm run dev:localhost` in the non-interactive agent environment failed at the Shopify CLI dev-store password prompt with `Incorrect store password. Please try again`.
+- The existing local offline session token for `bcdesign-oy2psurd.myshopify.com` returned `Invalid API key or access token` when used for Admin GraphQL, so the agent could not run `metaobjectUpsert` automatically.
+
+Next manual action:
+
+1. In an interactive terminal, run `npm run dev:localhost` and complete the Shopify CLI store-password prompt.
+2. Mirror the spike definitions into `shopify.app.localhost.toml` if the localhost config remains selected for dev, or run dev against the config file that contains the spike definitions.
+3. Use GraphiQL to run the `metaobjectUpsert` mutation for `$app:navigation_config` handle `global`.
+4. Temporarily add the Liquid diagnostic to `floating_demo.liquid`, verify the storefront displays `Metaobject OK: main-menu`, then revert the diagnostic.
+5. Create a `banner_slide` with a `desktop_image` file reference and, if available, a Shopify-hosted video file reference. Attach it to `$app:banner_config` `slides` and verify `image_url | image_tag` and `video_tag` output in Liquid.
+
 ## Testing And Verification
 
 Automated checks:

@@ -33,6 +33,58 @@ required = true
 name = "Description"
 type = "multi_line_text_field"
 
+[metaobjects.app.navigation_config]
+name = "Navigation configuration"
+display_name_field = "title"
+
+  [metaobjects.app.navigation_config.access]
+  admin = "merchant_read_write"
+
+[metaobjects.app.navigation_config.fields.title]
+name = "Title"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.navigation_config.fields.menu_handle]
+name = "Menu handle"
+type = "single_line_text_field"
+
+[metaobjects.app.banner_config]
+name = "Banner configuration"
+display_name_field = "title"
+
+  [metaobjects.app.banner_config.access]
+  admin = "merchant_read_write"
+
+[metaobjects.app.banner_config.fields.title]
+name = "Title"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.banner_config.fields.slides]
+name = "Slides"
+type = "list.metaobject_reference<$app:banner_slide>"
+
+[metaobjects.app.banner_slide]
+name = "Banner slide"
+display_name_field = "title"
+
+  [metaobjects.app.banner_slide.access]
+  admin = "merchant_read_write"
+
+[metaobjects.app.banner_slide.fields.title]
+name = "Title"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.banner_slide.fields.desktop_image]
+name = "Desktop image"
+type = "file_reference"
+
+[metaobjects.app.banner_slide.fields.video]
+name = "Shopify-hosted video"
+type = "file_reference"
+
 [webhooks]
 api_version = "2026-07"
 
