@@ -212,6 +212,30 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
 - When not on the homepage, output nothing (no empty placeholder div).
 - Keep full-bleed CSS on `#shopify-block-{{ bid }}`, cursor SVG variables, track slide loop, and `banner_carousel_slide` snippet calls unchanged inside the guard.
 
+### `assets/banner-carousel.js`
+
+**Required change for app embed DOM move:**
+
+Placement moves the banner Shopify block wrapper after `banner-carousel.js` has already upgraded `<banner-carousel>`. Moving the node disconnects and reconnects the custom element, which can run `connectedCallback()` twice and duplicate indicators, event listeners, and autoplay.
+
+**Chosen approach:** make `BcBannerCarousel` lifecycle idempotent (do not rely on script reorder alone).
+
+- Add a private init guard (e.g. `this.__bcBannerInitToken`) so `connectedCallback()` only schedules initialization once per element instance until `disconnectedCallback()` cleans up.
+- Implement `disconnectedCallback()` to:
+  - clear pending `setTimeout` init timers;
+  - stop autoplay / progress animation;
+  - remove listeners added in `setupNavigation`, `setupCursorNavigation`, `bindEvents`, and indicator clicks;
+  - reset `this.indicators`, `this.slides`, and related instance state.
+- After cleanup, a subsequent `connectedCallback()` from placement move may re-init safely exactly once.
+- Do not change carousel public behavior, class names, or slide collection logic beyond this lifecycle hardening.
+
+**Verification after placement move:**
+
+- Next/previous advances exactly one slide per click.
+- Autoplay runs only one active progress cycle.
+- Indicators are not duplicated.
+- Touch and cursor-click navigation do not fire twice.
+
 ### `assets/bc-design-embed-placement.js`
 
 New file. Small, no dependencies. Implements the contract in **DOM placement strategy** above.
@@ -368,6 +392,7 @@ There is no automatic migration. Section blocks and app embeds are separate enab
 - **Product/collection/other templates:** navigation only; no banner markup in page source.
 - **Theme Header disabled:** single navigation bar; dropdowns, mobile drawer, fixed nav behavior match legacy.
 - **Banner:** first visible pixel directly below fixed nav (no double gap); image ratios, overlay, indicators, autoplay, pause on hover, video fallback unchanged.
+- **Banner carousel lifecycle:** after placement DOM move, next/prev, autoplay, indicators, touch, and cursor nav each work once (no duplicate bindings).
 - **CLS:** no visible embed jump on throttled theme preview.
 - **Skip link:** remains first focusable affordance on Dawn-like themes.
 
@@ -410,6 +435,12 @@ Reviewed against local `docs/superpowers/specs/review.md` (not version-controlle
 | Banner offset double-counts nav `min-height` | Keep nav flow reservation; no banner `margin-top` when configured nav precedes banner |
 | `DOMContentLoaded` placement causes CLS | `bc-design-embed--pending` hide until `run()` completes; always reveal after |
 
+### Fourth pass
+
+| Finding | Resolution |
+|---------|------------|
+| Moving `<banner-carousel>` re-runs `connectedCallback` | Idempotent `connectedCallback` + cleanup `disconnectedCallback` in `banner-carousel.js` |
+
 ## Implementation Scope Estimate
 
-Single focused task: theme extension block schema and Liquid changes (including `data-bc-design-embed` wrappers), new `bc-design-embed-placement.js`, locale updates, delete `banner_slide.liquid`. No app code changes required.
+Single focused task: theme extension block schema and Liquid changes (including `data-bc-design-embed` wrappers), new `bc-design-embed-placement.js`, `banner-carousel.js` lifecycle hardening, locale updates, delete `banner_slide.liquid`. No app admin code changes required.
