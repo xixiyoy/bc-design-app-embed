@@ -86,12 +86,29 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
 
 **Placement scripts (new shared asset `bc-design-embed-placement.js`):**
 
-- Loaded by both embed blocks (declared in each block schema `javascript` array is not supported — use manual `<script defer>` tag in each block, or one shared script included from both blocks; prefer one shared asset included from both blocks to avoid duplication).
-- On `DOMContentLoaded`:
-  - Move the navigation root (`#nav-root-*`) to `document.body.firstElementChild` if not already the first child.
-  - On `template.name == 'index'` only: move the banner carousel root (`banner-carousel.bc-banner-carousel` or `#shopify-block-*` wrapper) to immediately follow the navigation root.
-  - Set `--bc-design-nav-height` CSS variable on `document.documentElement` from the measured navigation height so banner/full-bleed layout can offset correctly if needed.
-- Scripts are idempotent and no-op when elements are already in the correct position.
+- Loaded by both embed blocks via manual `<script defer>` (one shared asset; both blocks may include it on the homepage).
+- **Initialization contract** (required — both blocks may load the same script):
+  - Expose `window.BCDesignEmbedPlacement.run()` as the single entry point.
+  - Guard with `window.__BC_DESIGN_EMBED_PLACEMENT_LOADED__` so only one listener registers.
+  - `run()` is idempotent; call immediately when `document.readyState !== 'loading'`, otherwise on `DOMContentLoaded`.
+- **Stable embed markers** (required in Liquid — configured and empty states):
+  - Navigation block root wrapper: `data-bc-design-embed="navigation"` on an outer element present in both configured and empty output.
+  - Banner block root wrapper (index only): `data-bc-design-embed="banner"` on an outer element present in both configured and empty output.
+  - Placement script targets `[data-bc-design-embed="navigation"]` and `[data-bc-design-embed="banner"]`, never content-specific selectors such as `#nav-root-*` or `banner-carousel.bc-banner-carousel` alone.
+- **Move Shopify block wrappers, not inner roots only:**
+  - For each embed marker, resolve `embedEl.closest('[id^="shopify-block-"]')` and move that wrapper node when present.
+  - Moving only the inner root detaches `#shopify-block-{{ bid }}` scoped styles (full-bleed width, z-index, dropdown layering) and can break theme editor block highlighting.
+- **Insert position** (do not blindly use `document.body.firstElementChild`):
+  - Prefer inserting after accessibility affordances at the top of `<body>`: skip links (`a[href="#MainContent"]`, `.skip-to-content`, `[class*="skip"]`) and Shopify/theme editor injected nodes that must remain first.
+  - If no skip link is found, insert before the theme's first main content landmark (`main`, `#MainContent`, `.shopify-section` in header group) or prepend to `<body>` as fallback.
+- **Ordering:**
+  - Navigation wrapper first, banner wrapper immediately after navigation wrapper on index pages.
+  - Order must not depend on App embeds list order in the theme editor.
+- **Fixed-navigation offset (required on index):**
+  - Measure navigation wrapper height after move; set `--bc-design-nav-height` on `document.documentElement`.
+  - Apply `margin-top: var(--bc-design-nav-height)` (or equivalent `padding-top`) on the banner Shopify block wrapper so the banner's first visible pixel sits below the fixed nav, not hidden behind it.
+  - Re-run measurement on `resize` and when nav height may change across breakpoints.
+- `run()` no-ops when elements are already in the correct position.
 
 **Alternative rejected:** keeping Banner as a section block — conflicts with the decision to use two app embeds.
 
@@ -117,8 +134,20 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
 
 **Liquid changes:**
 
-- Keep existing metaobject reads, markup, snippets, and inline styles.
-- **Always** add `phaetus-nav-root--fixed` on the root element in embed mode (do not gate on `fixed_navigation`).
+- Wrap all block output (configured and empty states) in a stable outer element:
+
+```liquid
+<div data-bc-design-embed="navigation">
+  {% if nav_config == blank %}
+  <div class="phaetus-nav-empty" {{ block.shopify_attributes }}>...</div>
+  {% else %}
+  ... existing configured markup ...
+  {% endif %}
+</div>
+```
+
+- Keep existing metaobject reads, markup, snippets, and inline styles inside the wrapper.
+- **Always** add `phaetus-nav-root--fixed` on the configured root element in embed mode (do not gate on `fixed_navigation`).
 - Keep **manual** script tags in this order (schema supports only one `javascript` entry; GSAP is a hard dependency):
 
 ```liquid
@@ -128,7 +157,7 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
 ```
 
 - Remove the manual `<link rel="stylesheet">` for `navigation-menu.css` when schema `stylesheet` is declared (avoid duplicate load).
-- Keep `{{ block.shopify_attributes }}` on the root wrapper.
+- Keep `{{ block.shopify_attributes }}` on the visible root (configured `phaetus-nav-root` or empty-state div).
 - No template guard — navigation renders on all pages when the embed is enabled.
 
 ### `blocks/banner_carousel.liquid`
@@ -151,23 +180,57 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
 
 **Liquid changes:**
 
-- Wrap all banner output in a homepage guard:
+- Wrap all index output (configured and empty states) in a stable outer element:
 
 ```liquid
 {% if template.name == 'index' %}
+<div data-bc-design-embed="banner">
+  {% if banner_config == blank %}
+  <div class="bc-banner-carousel-empty" {{ block.shopify_attributes }}>...</div>
+  {% else %}
   ... existing banner rendering ...
+  {% endif %}
   <script src="{{ 'banner-carousel.js' | asset_url }}" defer></script>
   <script src="{{ 'bc-design-embed-placement.js' | asset_url }}" defer></script>
+</div>
 {% endif %}
 ```
 
-- Remove manual `<link>` / `<script>` for assets already declared in schema (`banner-carousel.css` via schema; `banner-carousel.js` stays manual because placement script must also load).
+- Remove manual `<link>` for `banner-carousel.css` when schema `stylesheet` is declared.
 - When not on the homepage, output nothing (no empty placeholder div).
-- Keep full-bleed CSS, cursor SVG variables, track slide loop, and `banner_carousel_slide` snippet calls unchanged inside the guard.
+- Keep full-bleed CSS on `#shopify-block-{{ bid }}`, cursor SVG variables, track slide loop, and `banner_carousel_slide` snippet calls unchanged inside the guard.
 
 ### `assets/bc-design-embed-placement.js`
 
-New file. Small, no dependencies. Responsibilities documented in **DOM placement strategy** above. Must be safe to load twice (both blocks may include it on homepage).
+New file. Small, no dependencies. Implements the contract in **DOM placement strategy** above.
+
+**Required behavior summary:**
+
+```js
+// Pseudocode — implementation guide
+window.BCDesignEmbedPlacement = window.BCDesignEmbedPlacement || {
+  run() {
+    const navEmbed = document.querySelector('[data-bc-design-embed="navigation"]');
+    const bannerEmbed = document.querySelector('[data-bc-design-embed="banner"]');
+    const navBlock = navEmbed?.closest('[id^="shopify-block-"]');
+    const bannerBlock = bannerEmbed?.closest('[id^="shopify-block-"]');
+    const insertAfter = findAccessibilityAnchor(); // skip links, etc.
+    moveBlock(navBlock, insertAfter);
+    moveBlock(bannerBlock, navBlock);
+    applyBannerOffset(navBlock, bannerBlock); // margin-top from measured nav height
+  },
+};
+if (!window.__BC_DESIGN_EMBED_PLACEMENT_LOADED__) {
+  window.__BC_DESIGN_EMBED_PLACEMENT_LOADED__ = true;
+  const start = () => window.BCDesignEmbedPlacement.run();
+  document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', start, { once: true })
+    : start();
+}
+```
+
+- Safe when loaded from both navigation and banner blocks on the same page.
+- Listens to `resize` (debounced) to refresh `--bc-design-nav-height` and banner offset.
 
 ### `blocks/banner_slide.liquid`
 
@@ -214,16 +277,20 @@ Remove `banner_slide` block entry.
 Shopify app embeds inject at the end of `<body>`. Visual top-of-page placement is handled by:
 
 1. Forced `phaetus-nav-root--fixed` on navigation embed.
-2. Shared `bc-design-embed-placement.js` moving navigation and banner nodes to the top of `<body>` in deterministic order on load.
+2. Shared `bc-design-embed-placement.js` moving **Shopify block wrappers** (via `data-bc-design-embed` markers) to the correct top-of-body position.
+3. Required banner `margin-top` offset from measured fixed navigation height on index pages.
 
 Verification during implementation:
 
 - With theme Header disabled, navigation appears once at the top on all templates.
-- **Homepage:** banner hero appears directly below navigation, not at the bottom of the page.
+- **Homepage:** banner hero appears directly below navigation, not at the bottom of the page and not hidden under the fixed nav.
+- **Homepage empty states:** navigation/banner setup messages appear near the top (placement script moves empty-state wrappers too).
 - **Non-homepage:** no banner markup in HTML source.
 - No duplicate nav bars or clipped dropdowns.
 - Banner full-bleed layout and carousel JS initialize only on index pages.
-- **Reversed App embeds order in theme editor** still produces navigation above banner (placement script invariant).
+- **Reversed App embeds order** in theme editor still produces navigation above banner.
+- **Dawn-like theme:** skip link remains usable; app embeds insert after skip link, not before it.
+- **Resize:** banner offset updates when navigation height changes across breakpoints.
 
 **Embed order in App embeds:** still recommend Navigation above Banner for clarity, but implementation must not require it.
 
@@ -256,8 +323,8 @@ Verification during implementation:
 
 | Condition | Behavior |
 |-----------|----------|
-| Navigation embed on, no metaobject config | Show existing empty-state message |
-| Banner embed on, no config, on homepage | Show existing empty-state message |
+| Navigation embed on, no metaobject config | Show empty-state message at top (wrapper moved by placement script) |
+| Banner embed on, no config, on homepage | Show empty-state message at top below nav offset area |
 | Banner embed on, not homepage | Render nothing |
 | Navigation embed off | No navigation output |
 | Theme Header still enabled | Both theme header and app navigation may appear — documented as merchant misconfiguration |
@@ -282,9 +349,11 @@ There is no automatic migration. Section blocks and app embeds are separate enab
 ### Storefront
 
 - **Homepage:** navigation + banner render from metaobjects; carousel JS runs; all slides render (no five-slide cap).
+- **Homepage unconfigured:** empty-state messages appear near top, not at page bottom.
 - **Product/collection/other templates:** navigation only; no banner markup in page source.
 - **Theme Header disabled:** single navigation bar; dropdowns, mobile drawer, fixed nav behavior match legacy.
-- **Banner:** image ratios, overlay, indicators, autoplay, pause on hover, video fallback unchanged.
+- **Banner:** first visible pixel below fixed nav; image ratios, overlay, indicators, autoplay, pause on hover, video fallback unchanged.
+- **Skip link:** remains first focusable affordance on Dawn-like themes.
 
 ### Automated
 
@@ -294,11 +363,13 @@ There is no automatic migration. Section blocks and app embeds are separate enab
 
 ## Design Review Resolutions
 
-Reviewed against `docs/superpowers/specs/review.md` on 2026-06-24.
+Reviewed against local `docs/superpowers/specs/review.md` (not version-controlled).
+
+### First pass
 
 | Finding | Resolution |
 |---------|------------|
-| Banner at body end, not below nav | `bc-design-embed-placement.js` prepends nav then banner on index |
+| Banner at body end, not below nav | `bc-design-embed-placement.js` moves block wrappers to top |
 | Non-fixed nav at body end | App embed always uses `phaetus-nav-root--fixed` |
 | GSAP load order / single schema `javascript` | Keep manual `gsap.min.js` + `navigation-animations.js`; schema `stylesheet` only for nav |
 | Delete `banner_slide.liquid` compatibility | Delete — unreleased dev store only |
@@ -306,6 +377,16 @@ Reviewed against `docs/superpowers/specs/review.md` on 2026-06-24.
 | Vague locale guidance | Exact keys listed above; remove `banner_slide` |
 | Validation commands | Added localhost config validate + dev smoke test |
 
+### Second pass
+
+| Finding | Resolution |
+|---------|------------|
+| Move inner root only breaks `#shopify-block-*` styles | Move `closest('[id^="shopify-block-"]')` wrapper |
+| Empty states not moved | `data-bc-design-embed` wrappers on configured and empty output |
+| Fixed nav covers banner | Required `margin-top` from measured `--bc-design-nav-height` on index |
+| `firstElementChild` breaks skip links | Insert after skip-link/accessibility anchors |
+| Double script load races | `__BC_DESIGN_EMBED_PLACEMENT_LOADED__` + idempotent `run()` |
+
 ## Implementation Scope Estimate
 
-Single focused task: theme extension block schema and Liquid changes, new `bc-design-embed-placement.js`, locale updates, delete `banner_slide.liquid`. No app code changes required.
+Single focused task: theme extension block schema and Liquid changes (including `data-bc-design-embed` wrappers), new `bc-design-embed-placement.js`, locale updates, delete `banner_slide.liquid`. No app code changes required.
