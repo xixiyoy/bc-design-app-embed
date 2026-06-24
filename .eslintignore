@@ -1,5 +1,10 @@
 node_modules
 build
 public/build
+/app/build
+/public/build
+/public/_dev
+/app/public/build
 */*.yml
 .shopify
+extensions/bc-design-theme/assets

@@ -1,16 +1,4 @@
 {
-  "ratings": {
-    "stars": {
-      "label": "Ratings"
-    },
-    "home": {
-      "recommendationText": "Recommended Product!"
-    }
-  },
-  "floating_demo": {
-    "store_label": "Store",
-    "page_label": "Page type"
-  },
   "navigation_menu": {
     "name": "Navigation Menu"
   },

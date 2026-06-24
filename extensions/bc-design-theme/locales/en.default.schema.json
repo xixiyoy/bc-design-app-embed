@@ -1,29 +1,13 @@
 {
   "blocks": {
-    "floating_demo": {
-      "name": "Floating Demo",
-      "settings": {
-        "button_label": {
-          "label": "Button label"
-        },
-        "greeting": {
-          "label": "Greeting message"
-        },
-        "primary_color": {
-          "label": "Primary color"
-        },
-        "position": {
-          "label": "Position",
-          "options": {
-            "bottom_right": {
-              "label": "Bottom right"
-            },
-            "bottom_left": {
-              "label": "Bottom left"
-            }
-          }
-        }
-      }
+    "navigation_menu": {
+      "name": "Navigation Menu"
+    },
+    "banner_carousel": {
+      "name": "Banner carousel"
+    },
+    "banner_slide": {
+      "name": "Banner slide"
     }
   }
 }
