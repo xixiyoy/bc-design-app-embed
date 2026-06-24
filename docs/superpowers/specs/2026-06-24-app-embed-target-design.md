@@ -104,10 +104,20 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
 - **Ordering:**
   - Navigation wrapper first, banner wrapper immediately after navigation wrapper on index pages.
   - Order must not depend on App embeds list order in the theme editor.
-- **Fixed-navigation offset (required on index):**
-  - Measure navigation wrapper height after move; set `--bc-design-nav-height` on `document.documentElement`.
-  - Apply `margin-top: var(--bc-design-nav-height)` (or equivalent `padding-top`) on the banner Shopify block wrapper so the banner's first visible pixel sits below the fixed nav, not hidden behind it.
-  - Re-run measurement on `resize` and when nav height may change across breakpoints.
+- **Fixed-navigation spacing (required on index — single owner, no double gap):**
+  - Legacy CSS already reserves flow space when navigation is fixed: `.phaetus-nav-root--fixed { min-height: var(--nav-height); }` while `.navbar` is `position: fixed`.
+  - When the navigation Shopify block wrapper sits immediately before the banner wrapper, that `min-height` already pushes the banner below the nav bar in document flow.
+  - **Do not** also apply `margin-top` on the banner wrapper when configured navigation is present — that creates a double nav-height gap.
+  - **Spacing owner:** keep nav root `min-height` reservation; banner wrapper gets **no extra top margin** when a configured `[data-bc-design-embed="navigation"]` block precedes it.
+  - **Empty navigation state:** if navigation embed is enabled but unconfigured (empty-state only), measure the empty wrapper height instead and apply banner offset only when the nav block does not reserve height via `phaetus-nav-root--fixed`.
+  - Set `--bc-design-nav-height` from the measured **fixed bar** (`.navbar` inside configured nav, or empty-state box height), not blindly the Shopify wrapper outer box, for diagnostics and any future offset needs.
+  - Re-run measurement on `resize` and across breakpoints.
+  - **Test:** homepage banner top sits exactly below the nav bar within a small pixel tolerance (e.g. ≤ 4px) on desktop and mobile — no double gap.
+- **CLS / FOUC mitigation (required):**
+  - Add a temporary hide class (e.g. `bc-design-embed--pending`) on `[data-bc-design-embed]` wrappers via inline style or small critical CSS in each block until `BCDesignEmbedPlacement.run()` completes.
+  - Run placement as early as safely possible (`DOMContentLoaded` or immediately if document already interactive).
+  - Always remove the hide class after `run()` finishes, even when one embed is missing or empty.
+  - **Test:** throttled CPU / slow network in theme preview — banner must not visibly jump from page bottom to top.
 - `run()` no-ops when elements are already in the correct position.
 
 **Alternative rejected:** keeping Banner as a section block — conflicts with the decision to use two app embeds.
@@ -137,7 +147,7 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
 - Wrap all block output (configured and empty states) in a stable outer element:
 
 ```liquid
-<div data-bc-design-embed="navigation">
+<div data-bc-design-embed="navigation" class="bc-design-embed--pending">
   {% if nav_config == blank %}
   <div class="phaetus-nav-empty" {{ block.shopify_attributes }}>...</div>
   {% else %}
@@ -145,6 +155,8 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
   {% endif %}
 </div>
 ```
+
+- Add critical inline style or asset rule: `.bc-design-embed--pending { visibility: hidden; }` removed by placement script after `run()`.
 
 - Keep existing metaobject reads, markup, snippets, and inline styles inside the wrapper.
 - **Always** add `phaetus-nav-root--fixed` on the configured root element in embed mode (do not gate on `fixed_navigation`).
@@ -184,7 +196,7 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
 
 ```liquid
 {% if template.name == 'index' %}
-<div data-bc-design-embed="banner">
+<div data-bc-design-embed="banner" class="bc-design-embed--pending">
   {% if banner_config == blank %}
   <div class="bc-banner-carousel-empty" {{ block.shopify_attributes }}>...</div>
   {% else %}
@@ -217,7 +229,8 @@ window.BCDesignEmbedPlacement = window.BCDesignEmbedPlacement || {
     const insertAfter = findAccessibilityAnchor(); // skip links, etc.
     moveBlock(navBlock, insertAfter);
     moveBlock(bannerBlock, navBlock);
-    applyBannerOffset(navBlock, bannerBlock); // margin-top from measured nav height
+    applyBannerSpacing(navBlock, bannerBlock); // no margin-top when nav min-height reserves flow
+    revealEmbeds(); // remove .bc-design-embed--pending from all [data-bc-design-embed]
   },
 };
 if (!window.__BC_DESIGN_EMBED_PLACEMENT_LOADED__) {
@@ -276,14 +289,16 @@ Remove `banner_slide` block entry.
 
 Shopify app embeds inject at the end of `<body>`. Visual top-of-page placement is handled by:
 
-1. Forced `phaetus-nav-root--fixed` on navigation embed.
-2. Shared `bc-design-embed-placement.js` moving **Shopify block wrappers** (via `data-bc-design-embed` markers) to the correct top-of-body position.
-3. Required banner `margin-top` offset from measured fixed navigation height on index pages.
+1. Forced `phaetus-nav-root--fixed` on navigation embed (nav root `min-height` owns flow spacing).
+2. Shared `bc-design-embed-placement.js` moving **Shopify block wrappers** to the correct top-of-body position.
+3. Banner sits directly below navigation wrapper with **no duplicate** `margin-top` when configured fixed nav is present.
+4. Temporary `bc-design-embed--pending` hide until placement completes (CLS mitigation).
 
 Verification during implementation:
 
 - With theme Header disabled, navigation appears once at the top on all templates.
-- **Homepage:** banner hero appears directly below navigation, not at the bottom of the page and not hidden under the fixed nav.
+- **Homepage:** banner hero appears directly below navigation with **no double nav-height gap** (≤ 4px tolerance).
+- **Homepage:** no visible banner jump from page bottom on slow network / throttled CPU.
 - **Homepage empty states:** navigation/banner setup messages appear near the top (placement script moves empty-state wrappers too).
 - **Non-homepage:** no banner markup in HTML source.
 - No duplicate nav bars or clipped dropdowns.
@@ -352,7 +367,8 @@ There is no automatic migration. Section blocks and app embeds are separate enab
 - **Homepage unconfigured:** empty-state messages appear near top, not at page bottom.
 - **Product/collection/other templates:** navigation only; no banner markup in page source.
 - **Theme Header disabled:** single navigation bar; dropdowns, mobile drawer, fixed nav behavior match legacy.
-- **Banner:** first visible pixel below fixed nav; image ratios, overlay, indicators, autoplay, pause on hover, video fallback unchanged.
+- **Banner:** first visible pixel directly below fixed nav (no double gap); image ratios, overlay, indicators, autoplay, pause on hover, video fallback unchanged.
+- **CLS:** no visible embed jump on throttled theme preview.
 - **Skip link:** remains first focusable affordance on Dawn-like themes.
 
 ### Automated
@@ -383,9 +399,16 @@ Reviewed against local `docs/superpowers/specs/review.md` (not version-controlle
 |---------|------------|
 | Move inner root only breaks `#shopify-block-*` styles | Move `closest('[id^="shopify-block-"]')` wrapper |
 | Empty states not moved | `data-bc-design-embed` wrappers on configured and empty output |
-| Fixed nav covers banner | Required `margin-top` from measured `--bc-design-nav-height` on index |
+| Fixed nav covers banner | Nav `min-height` owns spacing; no duplicate banner `margin-top` |
 | `firstElementChild` breaks skip links | Insert after skip-link/accessibility anchors |
 | Double script load races | `__BC_DESIGN_EMBED_PLACEMENT_LOADED__` + idempotent `run()` |
+
+### Third pass
+
+| Finding | Resolution |
+|---------|------------|
+| Banner offset double-counts nav `min-height` | Keep nav flow reservation; no banner `margin-top` when configured nav precedes banner |
+| `DOMContentLoaded` placement causes CLS | `bc-design-embed--pending` hide until `run()` completes; always reveal after |
 
 ## Implementation Scope Estimate
 
