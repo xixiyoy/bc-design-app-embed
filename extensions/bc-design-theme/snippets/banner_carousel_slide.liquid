@@ -1,0 +1,98 @@
+{% comment %}
+  Single banner carousel slide.
+
+  Accepts:
+    desktop_image, mobile_image, video, video_url
+    heading, subheading
+    primary_button_label, primary_button_link
+    secondary_button_label, secondary_button_link
+    overlay_opacity, eager_load
+{% endcomment %}
+
+<div
+  class="bc-banner-slide"
+  aria-hidden="true"
+  {{ shopify_attributes }}
+>
+  <div class="bc-banner-slide__media">
+    {%- if video != blank -%}
+      {{
+        video
+        | video_tag:
+          class: 'bc-banner-slide__video',
+          autoplay: true,
+          loop: true,
+          muted: true,
+          controls: false,
+          image_size: '2880x'
+      }}
+    {%- elsif video_url != blank -%}
+      <video
+        class="bc-banner-slide__video"
+        src="{{ video_url | escape }}"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+      ></video>
+    {%- elsif desktop_image != blank -%}
+      {%- if mobile_image != blank -%}
+        <picture>
+          <source
+            media="(max-width: 749px)"
+            srcset="{{ mobile_image | image_url: width: 900 }}"
+          >
+          {{
+            desktop_image
+            | image_url: width: 2880
+            | image_tag:
+              class: 'bc-banner-slide__image',
+              widths: '960, 1440, 1920, 2400, 2880',
+              sizes: '100vw',
+              loading: eager_load
+          }}
+        </picture>
+      {%- else -%}
+        {{
+          desktop_image
+          | image_url: width: 2880
+          | image_tag:
+            class: 'bc-banner-slide__image',
+            widths: '960, 1440, 1920, 2400, 2880',
+            sizes: '100vw',
+            loading: eager_load
+        }}
+      {%- endif -%}
+    {%- else -%}
+      {{ 'lifestyle-1' | placeholder_svg_tag: 'bc-banner-slide__image bc-banner-slide__placeholder' }}
+    {%- endif -%}
+    <div class="bc-banner-slide__overlay"></div>
+  </div>
+
+  <div class="bc-banner-slide__content">
+    {%- if heading != blank -%}
+      <h2 class="bc-banner-slide__heading">{{ heading | escape }}</h2>
+    {%- endif -%}
+
+    {%- if subheading != blank -%}
+      <p class="bc-banner-slide__subheading">{{ subheading | escape }}</p>
+    {%- endif -%}
+
+    {%- if primary_button_label != blank or secondary_button_label != blank -%}
+      <div class="bc-banner-slide__buttons">
+        {%- if primary_button_label != blank -%}
+          <a class="bc-banner-slide__button bc-banner-slide__button--primary" href="{{ primary_button_link | default: '#' }}">
+            {{- primary_button_label | escape -}}
+          </a>
+        {%- endif -%}
+
+        {%- if secondary_button_label != blank -%}
+          <a class="bc-banner-slide__button bc-banner-slide__button--secondary" href="{{ secondary_button_link | default: '#' }}">
+            {{- secondary_button_label | escape -}}
+          </a>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+  </div>
+</div>

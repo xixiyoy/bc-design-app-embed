@@ -1,0 +1,217 @@
+{% comment %}
+  Big image layout — 1 main + 2 side images.
+
+  URL priority per slot: level-3 menu link → level-2 link (fallback).
+  Image priority: theme custom image → level-3 linked resource → first 3 products from level-2 collection.
+
+  Accepts:
+    child_link       — level 2 link object
+    custom_image_1   — optional custom image for the main position
+    custom_image_2   — optional custom image for the first side position
+    custom_image_3   — optional custom image for the second side position
+    placeholder_img  — fallback image data URI
+{% endcomment %}
+
+{% assign grandchild_1 = nil %}
+{% assign grandchild_2 = nil %}
+{% assign grandchild_3 = nil %}
+{% for grandchild_link in child_link.links %}
+  {% if forloop.index == 1 %}
+    {% assign grandchild_1 = grandchild_link %}
+  {% elsif forloop.index == 2 %}
+    {% assign grandchild_2 = grandchild_link %}
+  {% elsif forloop.index == 3 %}
+    {% assign grandchild_3 = grandchild_link %}
+  {% endif %}
+{% endfor %}
+
+{% assign product_source_collection = nil %}
+
+{% if child_link.type == 'collection_link' and child_link.object != blank %}
+  {% assign product_source_collection = child_link.object %}
+{% elsif child_link.type == 'catalog_link' %}
+  {% assign product_source_collection = collections.all %}
+{% elsif child_link.type == 'collections_link' %}
+  {% assign product_source_collection = collections.all %}
+{% endif %}
+
+{% if product_source_collection == blank and child_link.url contains '/collections/' %}
+  {% assign url_tail = child_link.url | split: '/collections/' | last | split: '?' | first %}
+  {% assign nav_collection_handle = url_tail | split: '/' | first %}
+  {% if nav_collection_handle == 'all' or nav_collection_handle == blank %}
+    {% assign product_source_collection = collections.all %}
+  {% elsif collections[nav_collection_handle] != blank %}
+    {% assign product_source_collection = collections[nav_collection_handle] %}
+  {% endif %}
+{% endif %}
+
+{% assign big_main_product = nil %}
+{% assign big_side_product_1 = nil %}
+{% assign big_side_product_2 = nil %}
+
+{% if product_source_collection != blank %}
+  {% for product in product_source_collection.products limit: 3 %}
+    {% if forloop.index == 1 %}
+      {% assign big_main_product = product %}
+    {% elsif forloop.index == 2 %}
+      {% assign big_side_product_1 = product %}
+    {% elsif forloop.index == 3 %}
+      {% assign big_side_product_2 = product %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% assign main_url = child_link.url %}
+{% assign main_image = '' %}
+{% assign main_alt = child_link.title %}
+{% if grandchild_1 != blank %}
+  {% assign main_url = grandchild_1.url %}
+  {% assign main_alt = grandchild_1.title %}
+{% endif %}
+{% if custom_image_1 != blank %}
+  {% assign main_image = custom_image_1 | image_url: width: 912 %}
+  {% assign main_alt = custom_image_1.alt | default: main_alt %}
+{% elsif grandchild_1 != blank and grandchild_1.type == 'product_link' and grandchild_1.object != blank %}
+  {% assign main_alt = grandchild_1.object.title %}
+  {% if grandchild_1.object.featured_image %}
+    {% assign main_image = grandchild_1.object.featured_image | image_url: width: 912 %}
+  {% endif %}
+{% elsif grandchild_1 != blank and grandchild_1.type == 'collection_link' and grandchild_1.object != blank and grandchild_1.object.image %}
+  {% assign main_alt = grandchild_1.object.title %}
+  {% assign main_image = grandchild_1.object.image | image_url: width: 912 %}
+{% elsif big_main_product != blank %}
+  {% assign main_alt = big_main_product.title %}
+  {% if big_main_product.featured_image %}
+    {% assign main_image = big_main_product.featured_image | image_url: width: 912 %}
+  {% endif %}
+{% endif %}
+
+{% assign side_1_url = child_link.url %}
+{% assign side_1_image = '' %}
+{% assign side_1_alt = child_link.title %}
+{% if grandchild_2 != blank %}
+  {% assign side_1_url = grandchild_2.url %}
+  {% assign side_1_alt = grandchild_2.title %}
+{% endif %}
+{% if custom_image_2 != blank %}
+  {% assign side_1_image = custom_image_2 | image_url: width: 568 %}
+  {% assign side_1_alt = custom_image_2.alt | default: side_1_alt %}
+{% elsif grandchild_2 != blank and grandchild_2.type == 'product_link' and grandchild_2.object != blank %}
+  {% assign side_1_alt = grandchild_2.object.title %}
+  {% if grandchild_2.object.featured_image %}
+    {% assign side_1_image = grandchild_2.object.featured_image | image_url: width: 568 %}
+  {% endif %}
+{% elsif grandchild_2 != blank and grandchild_2.type == 'collection_link' and grandchild_2.object != blank and grandchild_2.object.image %}
+  {% assign side_1_alt = grandchild_2.object.title %}
+  {% assign side_1_image = grandchild_2.object.image | image_url: width: 568 %}
+{% elsif big_side_product_1 != blank %}
+  {% assign side_1_alt = big_side_product_1.title %}
+  {% if big_side_product_1.featured_image %}
+    {% assign side_1_image = big_side_product_1.featured_image | image_url: width: 568 %}
+  {% endif %}
+{% endif %}
+
+{% assign side_2_url = child_link.url %}
+{% assign side_2_image = '' %}
+{% assign side_2_alt = child_link.title %}
+{% if grandchild_3 != blank %}
+  {% assign side_2_url = grandchild_3.url %}
+  {% assign side_2_alt = grandchild_3.title %}
+{% endif %}
+{% if custom_image_3 != blank %}
+  {% assign side_2_image = custom_image_3 | image_url: width: 568 %}
+  {% assign side_2_alt = custom_image_3.alt | default: side_2_alt %}
+{% elsif grandchild_3 != blank and grandchild_3.type == 'product_link' and grandchild_3.object != blank %}
+  {% assign side_2_alt = grandchild_3.object.title %}
+  {% if grandchild_3.object.featured_image %}
+    {% assign side_2_image = grandchild_3.object.featured_image | image_url: width: 568 %}
+  {% endif %}
+{% elsif grandchild_3 != blank and grandchild_3.type == 'collection_link' and grandchild_3.object != blank and grandchild_3.object.image %}
+  {% assign side_2_alt = grandchild_3.object.title %}
+  {% assign side_2_image = grandchild_3.object.image | image_url: width: 568 %}
+{% elsif big_side_product_2 != blank %}
+  {% assign side_2_alt = big_side_product_2.title %}
+  {% if big_side_product_2.featured_image %}
+    {% assign side_2_image = big_side_product_2.featured_image | image_url: width: 568 %}
+  {% endif %}
+{% endif %}
+
+{% if main_url != blank %}
+  <a href="{{ main_url }}" class="big-image-main">
+    {% if main_image != blank %}
+      <img
+        src="{{ main_image }}"
+        alt="{{ main_alt | escape }}"
+        width="456"
+        height="340"
+        loading="lazy"
+      >
+    {% else %}
+      <img
+        src="{{ placeholder_img }}"
+        alt="{{ main_alt | escape }}"
+        width="456"
+        height="340"
+        loading="lazy"
+      >
+    {% endif %}
+  </a>
+{% else %}
+  <div class="big-image-main big-image-empty" aria-hidden="true">
+    <span class="big-image-placeholder-text">&nbsp;</span>
+  </div>
+{% endif %}
+
+<div class="big-image-side">
+  {% if side_1_url != blank %}
+    <a href="{{ side_1_url }}" class="big-image-sub">
+      {% if side_1_image != blank %}
+        <img
+          src="{{ side_1_image }}"
+          alt="{{ side_1_alt | escape }}"
+          width="320"
+          height="180"
+          loading="lazy"
+        >
+      {% else %}
+        <img
+          src="{{ placeholder_img }}"
+          alt="{{ side_1_alt | escape }}"
+          width="320"
+          height="180"
+          loading="lazy"
+        >
+      {% endif %}
+    </a>
+  {% else %}
+    <div class="big-image-sub big-image-empty" aria-hidden="true">
+      <span class="big-image-placeholder-text">&nbsp;</span>
+    </div>
+  {% endif %}
+
+  {% if side_2_url != blank %}
+    <a href="{{ side_2_url }}" class="big-image-sub">
+      {% if side_2_image != blank %}
+        <img
+          src="{{ side_2_image }}"
+          alt="{{ side_2_alt | escape }}"
+          width="320"
+          height="180"
+          loading="lazy"
+        >
+      {% else %}
+        <img
+          src="{{ placeholder_img }}"
+          alt="{{ side_2_alt | escape }}"
+          width="320"
+          height="180"
+          loading="lazy"
+        >
+      {% endif %}
+    </a>
+  {% else %}
+    <div class="big-image-sub big-image-empty" aria-hidden="true">
+      <span class="big-image-placeholder-text">&nbsp;</span>
+    </div>
+  {% endif %}
+</div>

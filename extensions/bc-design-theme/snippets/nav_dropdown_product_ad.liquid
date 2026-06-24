@@ -1,0 +1,37 @@
+{% comment %}
+  PC product-list layout — optional right-side ad slot.
+
+  Accepts:
+    ad_image        — image_picker value from block settings
+    ad_url          — url setting (optional)
+    placeholder_img — fallback data URI (unused when ad_image is set)
+{% endcomment %}
+
+{% assign ad_link = ad_url | strip %}
+
+<aside class="content-list-ad{% if ad_image == blank %} content-list-ad--empty{% endif %}"{% if ad_image == blank %} aria-hidden="true"{% else %} aria-label="Promotion"{% endif %}>
+  {% if ad_image != blank %}
+    {% assign ad_img_src = ad_image | image_url: width: 400 %}
+    {% if ad_link != blank %}
+      <a href="{{ ad_link }}" class="content-list-ad-link">
+        <img
+          src="{{ ad_img_src }}"
+          alt=""
+          width="200"
+          height="350"
+          loading="lazy"
+        >
+      </a>
+    {% else %}
+      <div class="content-list-ad-link">
+        <img
+          src="{{ ad_img_src }}"
+          alt=""
+          width="200"
+          height="350"
+          loading="lazy"
+        >
+      </div>
+    {% endif %}
+  {% endif %}
+</aside>

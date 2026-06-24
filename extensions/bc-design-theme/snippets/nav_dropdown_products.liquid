@@ -1,0 +1,79 @@
+{% comment %}
+  Method B — level-2 menu item links to a Collection.
+  Shows up to 8 products; More links to the current level-2 collection.
+
+  Accepts:
+    child_link       — level 2 link object (must point to a collection)
+    placeholder_img  — fallback image data URI
+    part             — optional: 'cards' | 'more' (default: both)
+{% endcomment %}
+
+{% assign nav_part = part | default: 'all' %}
+
+{% assign nav_max_products = 8 %}
+{% assign product_source_collection = nil %}
+
+{% if child_link.type == 'collection_link' and child_link.object != blank %}
+  {% assign product_source_collection = child_link.object %}
+{% elsif child_link.type == 'catalog_link' %}
+  {% assign product_source_collection = collections.all %}
+{% elsif child_link.type == 'collections_link' %}
+  {% assign product_source_collection = collections.all %}
+{% endif %}
+
+{% if product_source_collection == blank and child_link.url contains '/collections/' %}
+  {% assign url_tail = child_link.url | split: '/collections/' | last | split: '?' | first %}
+  {% assign nav_collection_handle = url_tail | split: '/' | first %}
+  {% if nav_collection_handle == 'all' or nav_collection_handle == blank %}
+    {% assign product_source_collection = collections.all %}
+  {% elsif collections[nav_collection_handle] != blank %}
+    {% assign product_source_collection = collections[nav_collection_handle] %}
+  {% endif %}
+{% endif %}
+
+{% if product_source_collection != blank %}
+  {% assign more_url = child_link.url %}
+  {% if more_url == blank and product_source_collection.url != blank %}
+    {% assign more_url = product_source_collection.url %}
+  {% endif %}
+
+  {% if nav_part == 'all' or nav_part == 'cards' %}
+  {% for product in product_source_collection.products limit: nav_max_products %}
+    {% assign card_url = product.url %}
+    {% assign card_title = product.title %}
+    {% assign card_desc = product.description | strip_html | truncate: 80 %}
+    {% assign card_image = '' %}
+    {% if product.featured_image %}
+      {% assign card_image = product.featured_image | image_url: width: 270 %}
+    {% endif %}
+    {% assign card_tag = '' %}
+    {% assign card_tips_tag = '' %}
+    {% assign nav_tag_file = product.metafields.custom.nav_tag.value %}
+    {% if nav_tag_file != blank %}
+      {% assign card_tag = nav_tag_file | image_url: width: 160 %}
+    {% endif %}
+    {% assign tips_tag_file = product.metafields.custom.tips_tag.value %}
+    {% if tips_tag_file != blank %}
+      {% assign card_tips_tag = tips_tag_file | image_url: width: 160 %}
+    {% endif %}
+    {% render 'nav_dropdown_product_card',
+      url: card_url,
+      title: card_title,
+      desc: card_desc,
+      image: card_image,
+      tag_image: card_tag,
+      tips_tag_image: card_tips_tag,
+      placeholder_img: placeholder_img,
+      extra: false
+    %}
+  {% endfor %}
+  {% endif %}
+
+  {% if nav_part == 'all' or nav_part == 'more' %}
+  {% if more_url != blank %}
+    <div class="more-btn-wrap">
+      <a href="{{ more_url }}" class="more-btn">More</a>
+    </div>
+  {% endif %}
+  {% endif %}
+{% endif %}

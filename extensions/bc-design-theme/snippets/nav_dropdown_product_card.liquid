@@ -1,0 +1,56 @@
+{% comment %}
+  Mega-menu product card (list mode)
+  Accepts: url, title, desc, image, tag_image, tips_tag_image, placeholder_img, extra (optional)
+{% endcomment %}
+
+<a href="{{ url }}" class="product-card{% if extra %} nav-product-extra{% endif %}">
+  {% if tag_image != blank %}
+    <span class="product-card-tag product-card-tag--nav">
+      <img
+        src="{{ tag_image }}"
+        alt=""
+        width="72"
+        height="22"
+        loading="lazy"
+      >
+    </span>
+  {% endif %}
+  {% if tips_tag_image != blank %}
+    <span class="product-card-tag product-card-tag--tips">
+      <img
+        src="{{ tips_tag_image }}"
+        alt=""
+        width="72"
+        height="22"
+        loading="lazy"
+      >
+    </span>
+  {% endif %}
+  <div class="product-card-inner">
+    {% if image != blank %}
+      <img
+        src="{{ image }}"
+        alt="{{ title | escape }}"
+        width="135"
+        height="135"
+        loading="lazy"
+      >
+    {% else %}
+      <img
+        src="{{ placeholder_img }}"
+        alt="{{ title | escape }}"
+        width="135"
+        height="135"
+        loading="lazy"
+      >
+    {% endif %}
+    <div class="product-info">
+      <div class="product-info-inner">
+        <div class="product-title">{{ title }}</div>
+        {% if desc != blank %}
+          <div class="product-desc">{{ desc }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</a>

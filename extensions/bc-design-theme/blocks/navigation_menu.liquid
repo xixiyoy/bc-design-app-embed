@@ -1,0 +1,746 @@
+{% comment %}
+  Navigation Menu Block
+  Theme App Extension — extensions/bc-design-mega-menu/blocks/navigation_menu.liquid
+
+  Settings:
+    logo_type         : select       — "text" or "image"
+    logo_text         : text         — logo label (defaults to shop name)
+    logo_image        : image_picker — logo image when type is "image" (nav height − 25px vertical gap, width auto)
+    icon_color        : color        — header icon color (search, cart, account)
+    nav_background_color : color     — navigation background color
+    primary_nav_text_color : color   — level-1 navigation text color
+    secondary_nav_text_color : color — level-2 navigation text color
+    menu              : link_list    — Shopify Navigation menu (level 1 + level 2 collections)
+    fixed_navigation  : checkbox     — keep navigation visible while scrolling
+
+  List mode (Method B): each level-2 item links to a Collection; products are loaded from that collection (up to 8, two columns). No level-3 menu items required.
+  Layout mode is configured per level-2 menu item in the theme editor by matching level-1 and level-2 menu indexes. Mobile always uses list layout.
+  Note: remote Google Fonts <link> tags were removed — Theme App Extensions must
+  not reference remote assets (theme-check RemoteAsset) and they break the dev
+  preview upload. The font-family stack below falls back to system fonts.
+  Note: image placeholders use a local transparent data-URI (placeholder_img)
+  instead of an empty/blank source — a blank or remote image source fails the
+  Theme App Extension validation/upload.
+{% endcomment %}
+
+{% assign nav_config = metaobjects['$app:navigation_config']['global'] %}
+{% assign bid = block.id %}
+{% assign placeholder_img = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==' %}
+
+{% if nav_config == blank %}
+  <div class="phaetus-nav-empty" {{ block.shopify_attributes }}>Configure navigation in the BC Design app.</div>
+{% else %}
+  {% assign selected_menu_handle = nav_config.menu_handle.value %}
+  {% assign menu = linklists[selected_menu_handle] %}
+  {% assign fixed_navigation = nav_config.fixed_navigation.value %}
+  {% assign logo_type = nav_config.logo_type.value | default: 'text' %}
+  {% assign logo_text = nav_config.logo_text.value | strip %}
+  {% assign logo_file = nav_config.logo_file.value %}
+  {% assign icon_color = nav_config.icon_color.value | default: '#7a7b7e' %}
+  {% assign nav_background_color = nav_config.nav_background_color.value | default: '#ffffff' %}
+  {% assign primary_nav_text_color = nav_config.primary_nav_text_color.value | default: '#7a7b7e' %}
+  {% assign secondary_nav_text_color = nav_config.secondary_nav_text_color.value | default: '#7a7b7e' %}
+<style>
+  #shopify-block-{{ bid }} {
+    position: relative;
+    z-index: 1000;
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
+
+  #shopify-block-{{ bid }}.phaetus-nav-block--dropdown-open {
+    z-index: 10001 !important;
+  }
+
+  .phaetus-nav-root#nav-root-{{ bid }} {
+    --phaetus-nav-icon-color: {{ icon_color }};
+    --phaetus-nav-background-color: {{ nav_background_color }};
+    --phaetus-primary-nav-text-color: {{ primary_nav_text_color }};
+    --phaetus-secondary-nav-text-color: {{ secondary_nav_text_color }};
+  }
+</style>
+<link rel="stylesheet" href="{{ 'navigation-menu.css' | asset_url }}">
+
+<div class="phaetus-nav-root{% if fixed_navigation %} phaetus-nav-root--fixed{% endif %}" id="nav-root-{{ bid }}" {{ block.shopify_attributes }}>
+
+  <!-- ========== Navbar ========== -->
+  <nav class="navbar" id="navbar-{{ bid }}">
+    <div class="navbar-inner">
+
+      <a href="{{ routes.root_url }}" class="logo-wrap">
+        {% if logo_type == 'image' and logo_file != blank %}
+          {{
+            logo_file
+            | image_url: width: 480
+            | image_tag:
+              class: 'logo-img',
+              alt: logo_text,
+              widths: '120, 180, 240, 360, 480',
+              loading: 'eager'
+          }}
+        {% else %}
+          <span class="logo-text">{{ logo_text | default: shop.name }}</span>
+        {% endif %}
+      </a>
+
+      <div class="nav-scroll-wrap">
+        <ul class="nav-menu">
+          {% for link in menu.links %}
+            <li
+              class="nav-item{% if link.links.size > 0 %} has-children{% endif %}{% if link.current %} active{% endif %}"
+              data-nav="{{ forloop.index0 }}"
+            >
+              <a href="{{ link.url }}">{{ link.title }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+
+        <div class="nav-scroll-controls nav-hidden">
+          <button class="nav-scroll-btn nav-scroll-prev" type="button" aria-label="Scroll menu left" disabled>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M15 5L8 12L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="nav-scroll-btn nav-scroll-next" type="button" aria-label="Scroll menu right" disabled>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-icons">
+        {% render 'nav_header_icons' %}
+      </div>
+
+      <button class="hamburger" id="hamburger-{{ bid }}" type="button" aria-label="Open navigation menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- ========== PC Dropdowns — one per Level 1 link that has children ========== -->
+  {% for link in menu.links %}
+    {% assign nav_idx = forloop.index0 %}
+    {% assign level_1_index = forloop.index %}
+    {% if link.links.size > 0 %}
+
+      <div
+        class="dropdown dropdown-list-mode"
+        id="dropdown-{{ bid }}-{{ nav_idx }}"
+      >
+        <div class="dropdown-inner">
+          <div
+            class="dropdown-close"
+            data-close-nav="{{ nav_idx }}"
+            role="button"
+            tabindex="0"
+            aria-label="Close menu"
+          >
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M28 12L12 28" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M12 12L28 28" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- Category Sidebar: Level 2 (child_link) -->
+          <div class="category-sidebar">
+            {% for child_link in link.links %}
+              <div
+                class="category-item{% if forloop.first %} active{% endif %}{% if child_link.current %} current{% endif %}"
+                data-drop="{{ nav_idx }}"
+                data-cat="{{ forloop.index0 }}"
+              >
+                {{ child_link.title }}
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="dropdown-content-area">
+            {% for child_link in link.links %}
+              {% assign level_2_index = forloop.index %}
+              {% assign child_layout = 'product_list' %}
+              {% assign big_image_1 = nil %}
+              {% assign big_image_2 = nil %}
+              {% assign big_image_3 = nil %}
+              {% assign ad_image = nil %}
+              {% assign ad_url = '' %}
+
+              {% for cfg in nav_config.second_level_configs.value %}
+                {% assign cfg_level_1_index = cfg.level_1_index.value | plus: 0 %}
+                {% assign cfg_level_2_index = cfg.level_2_index.value | plus: 0 %}
+                {% if cfg_level_1_index == level_1_index and cfg_level_2_index == level_2_index %}
+                  {% assign child_layout = cfg.layout_type.value | default: 'product_list' %}
+                  {% assign big_image_1 = cfg.big_image_1.value %}
+                  {% assign big_image_2 = cfg.big_image_2.value %}
+                  {% assign big_image_3 = cfg.big_image_3.value %}
+                  {% assign ad_image = cfg.ad_image.value %}
+                  {% assign ad_url = cfg.ad_url.value %}
+                {% endif %}
+              {% endfor %}
+
+              {% if child_layout == 'big_image' %}
+                <div
+                  class="content-big nav-content-panel{% unless forloop.first %} nav-hidden{% endunless %}"
+                  data-drop="{{ nav_idx }}"
+                  data-cat="{{ forloop.index0 }}"
+                >
+                  {% render 'nav_dropdown_big_images',
+                    child_link: child_link,
+                    custom_image_1: big_image_1,
+                    custom_image_2: big_image_2,
+                    custom_image_3: big_image_3,
+                    placeholder_img: placeholder_img
+                  %}
+                </div>
+              {% else %}
+                <div
+                  class="content-list nav-content-panel{% unless forloop.first %} nav-hidden{% endunless %}"
+                  data-drop="{{ nav_idx }}"
+                  data-cat="{{ forloop.index0 }}"
+                >
+                  <div class="content-list-body content-list-body--has-ad">
+                    <div class="content-list-main">
+                      <div class="content-list-products-grid">
+                        {% render 'nav_dropdown_products',
+                          child_link: child_link,
+                          placeholder_img: placeholder_img,
+                          part: 'cards'
+                        %}
+                      </div>
+                      {% render 'nav_dropdown_product_ad',
+                        ad_image: ad_image,
+                        ad_url: ad_url,
+                        placeholder_img: placeholder_img
+                      %}
+                    </div>
+                    {% render 'nav_dropdown_products',
+                      child_link: child_link,
+                      placeholder_img: placeholder_img,
+                      part: 'more'
+                    %}
+                  </div>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+        </div>
+      </div>
+
+    {% endif %}
+  {% endfor %}
+
+  <!-- ========== Mobile Overlay ========== -->
+  <div class="mobile-overlay" id="mobile-overlay-{{ bid }}"></div>
+
+  <!-- ========== Mobile Menu Drawer ========== -->
+  <div class="mobile-menu" id="mobile-menu-{{ bid }}">
+    {% for link in menu.links %}
+
+      {% if link.links.size > 0 %}
+
+        <!-- Level 1: toggle with arrow -->
+        <div
+          class="mobile-nav-item{% if link.current %} open{% endif %}"
+          data-mobile-nav-toggle
+        >
+          <span>{{ link.title }}</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="mobile-submenu{% if link.current %} open{% endif %}">
+          {% for child_link in link.links %}
+            {% assign child_has_collection = false %}
+            {% if child_link.type == 'collection_link' and child_link.object != blank %}
+              {% assign child_has_collection = true %}
+            {% elsif child_link.url contains '/collections/' %}
+              {% assign child_has_collection = true %}
+            {% endif %}
+
+            {% if child_has_collection %}
+              <div
+                class="mobile-category{% if child_link.current %} active{% endif %}"
+                data-mobile-cat-toggle
+              >
+                <span>{{ child_link.title }}</span>
+                <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+              <div class="mobile-cat-products{% if child_link.current %} open{% endif %}">
+                <div class="mobile-products">
+                  {% render 'nav_mobile_collection_products',
+                    child_link: child_link,
+                    placeholder_img: placeholder_img
+                  %}
+                </div>
+              </div>
+            {% else %}
+              <a
+                href="{{ child_link.url }}"
+                class="mobile-category{% if child_link.current %} active{% endif %}"
+              >
+                <span>{{ child_link.title }}</span>
+              </a>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+      {% else %}
+
+        <!-- Level 1: no children — direct link -->
+        <a
+          href="{{ link.url }}"
+          class="mobile-nav-item{% if link.current %} active{% endif %}"
+        >
+          <span>{{ link.title }}</span>
+        </a>
+
+      {% endif %}
+
+    {% endfor %}
+  </div>
+
+</div>
+
+<script src="{{ 'gsap.min.js' | asset_url }}" defer></script>
+<script src="{{ 'navigation-animations.js' | asset_url }}" defer></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+(function (bid) {
+  'use strict';
+  var DESKTOP_MIN_WIDTH = 1200;
+  var root          = document.getElementById('nav-root-' + bid);
+  if (!root) return;
+
+  var shopifyBlock  = root.closest('[id^="shopify-block-"]');
+  var anim          = window.PhaetusNavAnim;
+  var navbar        = document.getElementById('navbar-' + bid);
+  var hamburger     = document.getElementById('hamburger-' + bid);
+  var mobileMenu    = document.getElementById('mobile-menu-' + bid);
+  var mobileOverlay = document.getElementById('mobile-overlay-' + bid);
+  var navMenu       = root.querySelector('.nav-menu');
+  var navPrevBtn    = root.querySelector('.nav-scroll-prev');
+  var navNextBtn    = root.querySelector('.nav-scroll-next');
+  var navControls   = root.querySelector('.nav-scroll-controls');
+  var hoverCloseTimer = null;
+  var HOVER_CLOSE_DELAY = 180;
+
+  function isMobileViewport() {
+    return window.innerWidth < DESKTOP_MIN_WIDTH;
+  }
+
+  function clearHoverCloseTimer() {
+    if (hoverCloseTimer) {
+      clearTimeout(hoverCloseTimer);
+      hoverCloseTimer = null;
+    }
+  }
+
+  function scheduleHoverClose() {
+    if (isMobileViewport()) return;
+    clearHoverCloseTimer();
+    hoverCloseTimer = setTimeout(function () {
+      closeAllDropdowns();
+    }, HOVER_CLOSE_DELAY);
+  }
+
+  function isNavHoverZoneTarget(el) {
+    if (!el || !root.contains(el)) return false;
+    if (navbar && navbar.contains(el)) return true;
+    var openDrop = root.querySelector('.dropdown.open');
+    return !!(openDrop && openDrop.contains(el));
+  }
+
+  function bindNavHoverZone(el) {
+    if (!el) return;
+    el.addEventListener('mouseenter', function () {
+      if (isMobileViewport()) return;
+      clearHoverCloseTimer();
+    });
+    el.addEventListener('mouseleave', function (e) {
+      if (isMobileViewport()) return;
+      if (isNavHoverZoneTarget(e.relatedTarget)) return;
+      scheduleHoverClose();
+    });
+  }
+
+  function updateDropdownPosition() {
+    if (isMobileViewport() || !navbar) return;
+
+    if (root.classList.contains('phaetus-nav-root--fixed')) {
+      root.querySelectorAll('.dropdown').forEach(function (dd) {
+        dd.style.top = '';
+      });
+      return;
+    }
+
+    var top = navbar.getBoundingClientRect().bottom + 'px';
+    root.querySelectorAll('.dropdown').forEach(function (dd) {
+      dd.style.top = top;
+    });
+  }
+
+  function lockPageScrollForDropdown() {
+    if (!isMobileViewport()) {
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────
+     PC: Level 1 nav overflow controls
+  ───────────────────────────────────────────────────── */
+  function setNavScrollButtonState(button, isEnabled) {
+    if (!button) return;
+    button.disabled = !isEnabled;
+    button.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
+  }
+
+  function updateNavScrollButtons() {
+    if (!navMenu || !navPrevBtn || !navNextBtn || !navControls) return;
+
+    var isMobile = isMobileViewport();
+    if (isMobile) {
+      navControls.classList.add('nav-hidden');
+      navMenu.classList.remove('is-overflowing');
+      navMenu.scrollLeft = 0;
+      setNavScrollButtonState(navPrevBtn, false);
+      setNavScrollButtonState(navNextBtn, false);
+      return;
+    }
+
+    var hasOverflow = navMenu.scrollWidth > navMenu.clientWidth + 1;
+    navControls.classList.toggle('nav-hidden', !hasOverflow);
+    navMenu.classList.toggle('is-overflowing', hasOverflow);
+
+    if (!hasOverflow) {
+      navMenu.scrollLeft = 0;
+      setNavScrollButtonState(navPrevBtn, false);
+      setNavScrollButtonState(navNextBtn, false);
+      return;
+    }
+
+    var maxScrollLeft = navMenu.scrollWidth - navMenu.clientWidth;
+    var canScrollLeft = navMenu.scrollLeft > 1;
+    var canScrollRight = navMenu.scrollLeft < maxScrollLeft - 1;
+
+    setNavScrollButtonState(navPrevBtn, canScrollLeft);
+    setNavScrollButtonState(navNextBtn, canScrollRight);
+  }
+
+  function getNavScrollStep() {
+    if (!navMenu) return 0;
+    var firstItem = navMenu.querySelector('.nav-item');
+    if (firstItem) {
+      return Math.max(firstItem.getBoundingClientRect().width * 2, navMenu.clientWidth * 0.5);
+    }
+    return navMenu.clientWidth * 0.7;
+  }
+
+  function scrollNavMenu(direction) {
+    if (!navMenu) return;
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var step = getNavScrollStep();
+    var maxScrollLeft = navMenu.scrollWidth - navMenu.clientWidth;
+    var targetLeft = Math.max(0, Math.min(maxScrollLeft, navMenu.scrollLeft + (direction * step)));
+
+    navMenu.scrollTo({
+      left: targetLeft,
+      behavior: reduceMotion ? 'auto' : 'smooth'
+    });
+  }
+
+  if (navMenu && navPrevBtn && navNextBtn) {
+    navPrevBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      scrollNavMenu(-1);
+    });
+
+    navNextBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      scrollNavMenu(1);
+    });
+
+    navMenu.addEventListener('scroll', function () {
+      window.requestAnimationFrame(updateNavScrollButtons);
+    }, { passive: true });
+
+    window.addEventListener('resize', function () {
+      window.requestAnimationFrame(updateNavScrollButtons);
+      window.requestAnimationFrame(updateDropdownPosition);
+    });
+
+    window.addEventListener('scroll', function () {
+      if (root.querySelector('.dropdown.open')) {
+        window.requestAnimationFrame(updateDropdownPosition);
+      }
+    }, { passive: true });
+
+    updateNavScrollButtons();
+  }
+
+  /* ─────────────────────────────────────────────────────
+     PC helpers
+  ───────────────────────────────────────────────────── */
+  function setDropdownOpenLayer(isOpen) {
+    root.classList.toggle('phaetus-nav-root--dropdown-open', isOpen);
+    if (shopifyBlock) {
+      shopifyBlock.classList.toggle('phaetus-nav-block--dropdown-open', isOpen);
+    }
+  }
+
+  function finishCloseDropdowns() {
+    clearHoverCloseTimer();
+    setDropdownOpenLayer(false);
+    root.querySelectorAll('.dropdown').forEach(function (dd) {
+      dd.classList.remove('open');
+      dd.style.top = '';
+      dd.querySelectorAll('.content-list.is-expanded').forEach(function (panel) {
+        panel.classList.remove('is-expanded');
+      });
+    });
+    root.style.minHeight = '';
+    if (!isMobileViewport()) {
+      document.body.style.overflow = '';
+    }
+    root.querySelectorAll('.nav-item').forEach(function (ni) {
+      ni.classList.remove('active');
+    });
+  }
+
+  function closeAllDropdowns() {
+    var openList = root.querySelectorAll('.dropdown.open');
+    if (anim && openList.length) {
+      anim.closeAllDropdowns(root, finishCloseDropdowns);
+    } else {
+      finishCloseDropdowns();
+    }
+  }
+
+  function activateCategory(item) {
+    var dropKey  = item.dataset.drop;
+    var catKey   = item.dataset.cat;
+    var dropdown = document.getElementById('dropdown-' + bid + '-' + dropKey);
+    if (!dropdown) return;
+
+    dropdown.querySelectorAll('.category-item').forEach(function (cat) {
+      cat.classList.toggle('active', cat.dataset.cat === catKey);
+    });
+
+    dropdown.querySelectorAll('.nav-content-panel').forEach(function (panel) {
+      var isActive = panel.dataset.cat === catKey;
+      panel.classList.toggle('nav-hidden', !isActive);
+      if (isActive) {
+        var isBigLayout = panel.classList.contains('content-big');
+        dropdown.classList.toggle('dropdown-big-mode', isBigLayout);
+        dropdown.classList.toggle('dropdown-list-mode', !isBigLayout);
+      } else {
+        panel.classList.remove('is-expanded');
+      }
+    });
+    window.requestAnimationFrame(updateDropdownPosition);
+  }
+
+  function openDropdownForNavItem(item) {
+    if (isMobileViewport()) return;
+
+    var navKey   = item.dataset.nav;
+    var dropdown = document.getElementById('dropdown-' + bid + '-' + navKey);
+    if (!dropdown) return;
+
+    clearHoverCloseTimer();
+
+    var isAlreadyOpen = dropdown.classList.contains('open') && item.classList.contains('active');
+    if (isAlreadyOpen) return;
+
+    root.querySelectorAll('.dropdown').forEach(function (dd) {
+      dd.classList.remove('open');
+    });
+
+    dropdown.classList.add('open');
+    setDropdownOpenLayer(true);
+    if (anim) anim.openDropdown(dropdown);
+
+    root.querySelectorAll('.nav-item').forEach(function (ni) { ni.classList.remove('active'); });
+    item.classList.add('active');
+
+    var firstCat = dropdown.querySelector('.category-item');
+    if (firstCat) activateCategory(firstCat);
+    if (anim) anim.onCategoryChange(dropdown);
+
+    updateDropdownPosition();
+    lockPageScrollForDropdown();
+  }
+
+  /* ─────────────────────────────────────────────────────
+     PC: Level 1 nav-item hover → open / switch floating dropdown
+  ───────────────────────────────────────────────────── */
+  root.querySelectorAll('.nav-item.has-children').forEach(function (item) {
+    item.addEventListener('mouseenter', function () {
+      openDropdownForNavItem(item);
+    });
+
+    var link = item.querySelector('a');
+    if (link) {
+      link.addEventListener('click', function (e) {
+        if (!isMobileViewport()) e.preventDefault();
+      });
+    }
+  });
+
+  bindNavHoverZone(navbar);
+  root.querySelectorAll('.dropdown').forEach(bindNavHoverZone);
+
+  /* ─────────────────────────────────────────────────────
+     PC: Level 2 category-item hover → switch content panel
+  ───────────────────────────────────────────────────── */
+  root.querySelectorAll('.category-item').forEach(function (item) {
+    item.addEventListener('mouseenter', function () {
+      if (isMobileViewport()) return;
+      activateCategory(item);
+      var dropdown = document.getElementById('dropdown-' + bid + '-' + item.dataset.drop);
+      if (anim && dropdown) anim.onCategoryChange(dropdown);
+    });
+  });
+
+  /* ─────────────────────────────────────────────────────
+     PC: Close button
+  ───────────────────────────────────────────────────── */
+  root.querySelectorAll('.dropdown-close').forEach(function (btn) {
+    btn.addEventListener('click', closeAllDropdowns);
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeAllDropdowns(); }
+    });
+  });
+
+  /* ─────────────────────────────────────────────────────
+     PC: Click outside → close
+  ───────────────────────────────────────────────────── */
+  document.addEventListener('click', function (e) {
+    if (isMobileViewport()) return;
+    var openDrop = root.querySelector('.dropdown.open');
+    if (!openDrop) return;
+    if (navbar && navbar.contains(e.target)) return;
+    if (openDrop.contains(e.target)) return;
+    closeAllDropdowns();
+  });
+
+  /* ─────────────────────────────────────────────────────
+     Escape key
+  ───────────────────────────────────────────────────── */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    closeAllDropdowns();
+    if (mobileMenu && mobileMenu.classList.contains('open')) closeMobile();
+  });
+
+  /* ─────────────────────────────────────────────────────
+     Mobile helpers
+  ───────────────────────────────────────────────────── */
+  function finishCloseMobile() {
+    mobileMenu.classList.remove('open');
+    if (mobileOverlay) mobileOverlay.classList.remove('open');
+    if (hamburger)     hamburger.classList.remove('active');
+    if (navbar)        navbar.classList.remove('mobile-menu-open');
+    document.body.style.overflow = '';
+  }
+
+  function openMobile() {
+    mobileMenu.classList.add('open');
+    if (mobileOverlay) mobileOverlay.classList.add('open');
+    if (hamburger)     hamburger.classList.add('active');
+    if (navbar)        navbar.classList.add('mobile-menu-open');
+    document.body.style.overflow = 'hidden';
+    if (anim) anim.openMobileMenu(mobileMenu, mobileOverlay);
+  }
+
+  function closeMobile() {
+    if (anim && mobileMenu && mobileMenu.classList.contains('open')) {
+      anim.closeMobileMenu(mobileMenu, mobileOverlay, finishCloseMobile);
+    } else {
+      finishCloseMobile();
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────
+     Mobile: hamburger
+  ───────────────────────────────────────────────────── */
+  if (hamburger) {
+    hamburger.addEventListener('click', function () {
+      mobileMenu.classList.contains('open') ? closeMobile() : openMobile();
+    });
+  }
+
+  if (mobileOverlay) {
+    mobileOverlay.addEventListener('click', closeMobile);
+  }
+
+  var lastIsMobile = isMobileViewport();
+  window.addEventListener('resize', function () {
+    var nowMobile = isMobileViewport();
+    if (nowMobile === lastIsMobile) return;
+    lastIsMobile = nowMobile;
+    if (nowMobile) {
+      closeAllDropdowns();
+    } else if (mobileMenu && mobileMenu.classList.contains('open')) {
+      closeMobile();
+    }
+  });
+
+  /* ─────────────────────────────────────────────────────
+     Mobile: Level 1 accordion toggle
+  ───────────────────────────────────────────────────── */
+  root.querySelectorAll('.mobile-nav-item[data-mobile-nav-toggle]').forEach(function (item) {
+    item.addEventListener('click', function () {
+      var isOpen = item.classList.toggle('open');
+      var submenu = item.nextElementSibling;
+      if (submenu && submenu.classList.contains('mobile-submenu')) {
+        submenu.classList.toggle('open', isOpen);
+        if (anim) anim.toggleMobileSubmenu(submenu, isOpen);
+      }
+    });
+  });
+
+  /* ─────────────────────────────────────────────────────
+     Mobile: Level 2 sub-accordion toggle (grandchild products)
+  ───────────────────────────────────────────────────── */
+  root.querySelectorAll('.mobile-category[data-mobile-cat-toggle]').forEach(function (item) {
+    item.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isActive = item.classList.toggle('active');
+      var products = item.nextElementSibling;
+      if (products && products.classList.contains('mobile-cat-products')) {
+        products.classList.toggle('open', isActive);
+        if (anim) anim.toggleMobileCategoryProducts(products, isActive);
+      }
+    });
+  });
+
+})({{ bid | json }});
+});
+</script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Navigation Menu",
+  "target": "section",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Configure this module in Apps → BC Design → Navigation."
+    }
+  ]
+}
+{% endschema %}

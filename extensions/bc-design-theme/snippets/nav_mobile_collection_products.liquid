@@ -1,0 +1,82 @@
+{% comment %}
+  Method B — mobile product list for a level-2 collection menu item.
+
+  Accepts:
+    child_link       — level 2 link object
+    placeholder_img  — fallback image data URI
+{% endcomment %}
+
+{% assign product_source_collection = nil %}
+
+{% if child_link.type == 'collection_link' and child_link.object != blank %}
+  {% assign product_source_collection = child_link.object %}
+{% elsif child_link.type == 'catalog_link' %}
+  {% assign product_source_collection = collections.all %}
+{% elsif child_link.type == 'collections_link' %}
+  {% assign product_source_collection = collections.all %}
+{% endif %}
+
+{% if product_source_collection == blank and child_link.url contains '/collections/' %}
+  {% assign url_tail = child_link.url | split: '/collections/' | last | split: '?' | first %}
+  {% assign nav_collection_handle = url_tail | split: '/' | first %}
+  {% if nav_collection_handle == 'all' or nav_collection_handle == blank %}
+    {% assign product_source_collection = collections.all %}
+  {% elsif collections[nav_collection_handle] != blank %}
+    {% assign product_source_collection = collections[nav_collection_handle] %}
+  {% endif %}
+{% endif %}
+
+{% if product_source_collection != blank %}
+  {% for product in product_source_collection.products limit: 8 %}
+    {% assign card_url = product.url %}
+    {% assign card_title = product.title %}
+    {% assign card_desc = product.description | strip_html | truncate: 80 %}
+    {% assign card_image = placeholder_img %}
+    {% if product.featured_image %}
+      {% assign card_image = product.featured_image | image_url: width: 270 %}
+    {% endif %}
+    {% assign card_tag = '' %}
+    {% assign card_tips_tag = '' %}
+    {% assign nav_tag_file = product.metafields.custom.nav_tag.value %}
+    {% if nav_tag_file != blank %}
+      {% assign card_tag = nav_tag_file | image_url: width: 160 %}
+    {% endif %}
+    {% assign tips_tag_file = product.metafields.custom.tips_tag.value %}
+    {% if tips_tag_file != blank %}
+      {% assign card_tips_tag = tips_tag_file | image_url: width: 160 %}
+    {% endif %}
+    <a href="{{ card_url }}" class="mobile-product-card">
+      {% if card_tag != blank %}
+        <span class="product-card-tag product-card-tag--nav">
+          <img
+            src="{{ card_tag }}"
+            alt=""
+            width="72"
+            height="22"
+            loading="lazy"
+          >
+        </span>
+      {% endif %}
+      {% if card_tips_tag != blank %}
+        <span class="product-card-tag product-card-tag--tips">
+          <img
+            src="{{ card_tips_tag }}"
+            alt=""
+            width="72"
+            height="22"
+            loading="lazy"
+          >
+        </span>
+      {% endif %}
+      <div class="mobile-product-img">
+        <img src="{{ card_image }}" alt="{{ card_title | escape }}" width="135" height="135" loading="lazy">
+      </div>
+      <div class="mobile-product-info">
+        <div class="mobile-product-title">{{ card_title }}</div>
+        {% if card_desc != blank %}
+          <div class="mobile-product-desc">{{ card_desc }}</div>
+        {% endif %}
+      </div>
+    </a>
+  {% endfor %}
+{% endif %}

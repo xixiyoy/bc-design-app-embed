@@ -1,0 +1,17 @@
+{% comment %}
+  Banner slides are rendered inside the Banner carousel block via metaobject data.
+  This block is retained as a no-op for backward compatibility with existing theme sections.
+{% endcomment %}
+
+{% schema %}
+{
+  "name": "Banner slide",
+  "target": "section",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Slides are configured in Apps → BC Design → Banner. Add a Banner carousel block instead."
+    }
+  ]
+}
+{% endschema %}
