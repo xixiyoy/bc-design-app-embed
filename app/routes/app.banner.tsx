@@ -296,16 +296,15 @@ export default function BannerPage() {
     }));
   }, []);
 
-  const removeSlide = useCallback((index: number) => {
+  const removeSlide = useCallback((slideId: string) => {
     setFormState((current) => ({
       ...current,
-      slides: current.slides.filter((_, slideIndex) => slideIndex !== index),
+      slides: current.slides.filter((slide) => slide.id !== slideId),
     }));
     setPendingFiles((current) => {
       const next: Record<string, File> = {};
       for (const [key, file] of Object.entries(current)) {
-        const [slideIndex] = key.split(".");
-        if (Number(slideIndex) !== index) {
+        if (!key.startsWith(`${slideId}.`)) {
           next[key] = file;
         }
       }
@@ -314,8 +313,7 @@ export default function BannerPage() {
     setLocalPreviewUrls((current) => {
       const next: Record<string, string> = {};
       for (const [key, url] of Object.entries(current)) {
-        const [slideIndex] = key.split(".");
-        if (Number(slideIndex) === index) {
+        if (key.startsWith(`${slideId}.`)) {
           URL.revokeObjectURL(url);
         } else {
           next[key] = url;
@@ -382,17 +380,17 @@ export default function BannerPage() {
   const previewConfig = useMemo<BannerPreviewConfig>(
     () => ({
       ...formState,
-      slides: formState.slides.map((slide, index) => ({
+      slides: formState.slides.map((slide) => ({
         ...slide,
         desktopImagePreview: resolvePreviewUrl(
           slide.desktopImage,
-          `${index}.desktopImage`,
+          `${slide.id}.desktopImage`,
         ),
         mobileImagePreview: resolvePreviewUrl(
           slide.mobileImage,
-          `${index}.mobileImage`,
+          `${slide.id}.mobileImage`,
         ),
-        videoPreview: resolvePreviewUrl(slide.video, `${index}.video`),
+        videoPreview: resolvePreviewUrl(slide.video, `${slide.id}.video`),
       })),
     }),
     [formState, resolvePreviewUrl],
@@ -403,9 +401,9 @@ export default function BannerPage() {
     formData.append("intent", "saveBanner");
     formData.append("config", JSON.stringify(formState));
 
-    formState.slides.forEach((_, index) => {
+    formState.slides.forEach((slide, index) => {
       for (const field of SLIDE_MEDIA_FIELDS) {
-        const file = pendingFiles[`${index}.${field}`];
+        const file = pendingFiles[`${slide.id}.${field}`];
         if (file) {
           formData.append(`slides.${index}.${field}`, file);
         }
@@ -535,7 +533,7 @@ export default function BannerPage() {
                     type="button"
                     variant="secondary"
                     tone="critical"
-                    onClick={() => removeSlide(index)}
+                    onClick={() => removeSlide(slide.id)}
                   >
                     Delete
                   </s-button>
@@ -555,10 +553,10 @@ export default function BannerPage() {
                   value={slide.desktopImage}
                   previewUrl={resolvePreviewUrl(
                     slide.desktopImage,
-                    `${index}.desktopImage`,
+                    `${slide.id}.desktopImage`,
                   )}
                   onChange={(file) =>
-                    trackPendingFile(`${index}.desktopImage`, file)
+                    trackPendingFile(`${slide.id}.desktopImage`, file)
                   }
                 />
 
@@ -568,10 +566,10 @@ export default function BannerPage() {
                   value={slide.mobileImage}
                   previewUrl={resolvePreviewUrl(
                     slide.mobileImage,
-                    `${index}.mobileImage`,
+                    `${slide.id}.mobileImage`,
                   )}
                   onChange={(file) =>
-                    trackPendingFile(`${index}.mobileImage`, file)
+                    trackPendingFile(`${slide.id}.mobileImage`, file)
                   }
                 />
 
@@ -579,10 +577,15 @@ export default function BannerPage() {
                   name={`slides.${index}.video`}
                   label="Shopify-hosted video"
                   value={slide.video}
-                  previewUrl={resolvePreviewUrl(slide.video, `${index}.video`)}
+                  previewUrl={resolvePreviewUrl(
+                    slide.video,
+                    `${slide.id}.video`,
+                  )}
                   accept="video/*"
                   mediaKind="video"
-                  onChange={(file) => trackPendingFile(`${index}.video`, file)}
+                  onChange={(file) =>
+                    trackPendingFile(`${slide.id}.video`, file)
+                  }
                 />
 
                 <s-url-field
