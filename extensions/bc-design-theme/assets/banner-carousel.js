@@ -5,6 +5,9 @@ class BcBannerCarousel extends HTMLElement {
   }
 
   connectedCallback() {
+    if (this.__bcBannerInitToken) return;
+    this.__bcBannerInitToken = Symbol('bc-banner-init');
+
     this.track = this.querySelector('.bc-banner-carousel__track');
     this.indicatorsContainer = this.querySelector('.bc-banner-carousel__indicators');
     this.prevButton = this.querySelector('.bc-banner-carousel__nav--prev');
@@ -16,10 +19,12 @@ class BcBannerCarousel extends HTMLElement {
     this.touchStartY = 0;
     this.autoplaySpeed = Number(this.dataset.autoplaySpeed) || 5000;
     this.canAnimate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.__bcBoundHandlers = [];
 
     if (!this.track) return;
 
-    window.setTimeout(() => {
+    this.__bcInitTimer = window.setTimeout(() => {
+      this.__bcInitTimer = null;
       this.collectSlides();
       if (this.slides.length === 0) return;
 
@@ -31,6 +36,37 @@ class BcBannerCarousel extends HTMLElement {
       this.goTo(0);
       this.startAutoplay();
     }, 0);
+  }
+
+  disconnectedCallback() {
+    if (this.__bcInitTimer) {
+      clearTimeout(this.__bcInitTimer);
+      this.__bcInitTimer = null;
+    }
+
+    this.cancelProgressAnimation();
+    this.stopAutoplay();
+
+    if (this.__bcBoundHandlers) {
+      this.__bcBoundHandlers.forEach(({ target, type, handler, options }) => {
+        target.removeEventListener(type, handler, options);
+      });
+      this.__bcBoundHandlers = [];
+    }
+
+    if (this.indicatorsContainer) {
+      this.indicatorsContainer.textContent = '';
+    }
+
+    this.indicators = [];
+    this.slides = [];
+    this.progressAnimation = null;
+    this.__bcBannerInitToken = null;
+  }
+
+  __bcAddListener(target, type, handler, options) {
+    target.addEventListener(type, handler, options);
+    this.__bcBoundHandlers.push({ target, type, handler, options });
   }
 
   createIndicators() {
@@ -52,11 +88,12 @@ class BcBannerCarousel extends HTMLElement {
       progress.setAttribute('aria-hidden', 'true');
       button.append(progress);
 
-      button.addEventListener('click', () => {
+      const onClick = () => {
         this.stopAutoplay();
         this.goTo(slideIndex);
         this.resumeAutoplay();
-      });
+      };
+      this.__bcAddListener(button, 'click', onClick);
       this.indicatorsContainer.append(button);
       return button;
     });
@@ -72,8 +109,12 @@ class BcBannerCarousel extends HTMLElement {
 
     if (!hasMultipleSlides) return;
 
-    this.prevButton?.addEventListener('click', () => this.previous());
-    this.nextButton?.addEventListener('click', () => this.next());
+    if (this.prevButton) {
+      this.__bcAddListener(this.prevButton, 'click', () => this.previous());
+    }
+    if (this.nextButton) {
+      this.__bcAddListener(this.nextButton, 'click', () => this.next());
+    }
   }
 
   isInteractiveTarget(target) {
@@ -101,7 +142,7 @@ class BcBannerCarousel extends HTMLElement {
       this.classList.toggle('bc-banner-carousel--cursor-next', !isLeft);
     };
 
-    this.addEventListener('mousemove', (event) => {
+    const onMouseMove = (event) => {
       if (this.isInteractiveTarget(event.target)) {
         this.classList.remove('bc-banner-carousel--cursor-prev', 'bc-banner-carousel--cursor-next');
         return;
@@ -116,27 +157,29 @@ class BcBannerCarousel extends HTMLElement {
         updateCursor(pendingClientX);
         pendingClientX = null;
       });
-    });
+    };
 
-    this.addEventListener('mouseleave', () => {
+    const onMouseLeave = () => {
       if (cursorRafId) {
         cancelAnimationFrame(cursorRafId);
         cursorRafId = null;
       }
-
       pendingClientX = null;
       this.classList.remove('bc-banner-carousel--cursor-prev', 'bc-banner-carousel--cursor-next');
-    });
+    };
 
-    this.addEventListener('click', (event) => {
+    const onClick = (event) => {
       if (this.isInteractiveTarget(event.target)) return;
-
       if (this.isLeftOfBannerCenter(event.clientX)) {
         this.previous();
       } else {
         this.next();
       }
-    });
+    };
+
+    this.__bcAddListener(this, 'mousemove', onMouseMove);
+    this.__bcAddListener(this, 'mouseleave', onMouseLeave);
+    this.__bcAddListener(this, 'click', onClick);
   }
 
   isAutoplayEnabled() {
@@ -228,36 +271,36 @@ class BcBannerCarousel extends HTMLElement {
   }
 
   bindEvents() {
-    this.addEventListener('keydown', (event) => {
+    this.__bcAddListener(this, 'keydown', (event) => {
       if (event.key === 'ArrowLeft') this.previous();
       if (event.key === 'ArrowRight') this.next();
     });
 
     if (this.dataset.pauseOnHover === 'true') {
-      this.addEventListener('mouseenter', () => {
+      this.__bcAddListener(this, 'mouseenter', () => {
         this.isHovered = true;
         this.stopAutoplay();
       });
-      this.addEventListener('mouseleave', () => {
+      this.__bcAddListener(this, 'mouseleave', () => {
         this.isHovered = false;
         this.resumeAutoplay();
       });
     }
 
-    this.addEventListener('focusin', (event) => {
+    this.__bcAddListener(this, 'focusin', (event) => {
       if (event.target.matches(':focus-visible')) this.stopAutoplay();
     });
-    this.addEventListener('focusout', (event) => {
+    this.__bcAddListener(this, 'focusout', (event) => {
       if (this.contains(event.relatedTarget)) return;
       this.resumeAutoplay();
     });
 
-    this.addEventListener('touchstart', (event) => {
+    this.__bcAddListener(this, 'touchstart', (event) => {
       this.touchStartX = event.touches[0].clientX;
       this.touchStartY = event.touches[0].clientY;
     }, { passive: true });
 
-    this.addEventListener('touchend', (event) => {
+    this.__bcAddListener(this, 'touchend', (event) => {
       const touch = event.changedTouches[0];
       const distanceX = touch.clientX - this.touchStartX;
       const distanceY = touch.clientY - this.touchStartY;
