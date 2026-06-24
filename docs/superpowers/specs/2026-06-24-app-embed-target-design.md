@@ -74,6 +74,29 @@ Data flow is unchanged: app admin writes metaobjects; theme extension reads meta
 
 ## Theme Extension Changes
 
+### DOM placement strategy (body embed invariant)
+
+Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an enablement-path change **and** a DOM placement change. The implementation must not rely on normal document flow or merchant app-embed list order for top-of-page layout.
+
+**Rules:**
+
+1. **Navigation** always renders with `phaetus-nav-root--fixed` in app embed mode, regardless of the `fixed_navigation` metaobject value. App embed navigation replaces the theme Header and must pin to the viewport top. The metaobject field remains in app admin for parity with legacy data but does not disable the fixed shell in embed mode.
+2. **Banner (index only)** must appear as a homepage hero directly below the navigation bar, matching legacy section-block placement as closely as possible.
+3. **Deterministic ordering** must not depend on App embeds list order. Use placement scripts (below), not merchant ordering alone.
+
+**Placement scripts (new shared asset `bc-design-embed-placement.js`):**
+
+- Loaded by both embed blocks (declared in each block schema `javascript` array is not supported — use manual `<script defer>` tag in each block, or one shared script included from both blocks; prefer one shared asset included from both blocks to avoid duplication).
+- On `DOMContentLoaded`:
+  - Move the navigation root (`#nav-root-*`) to `document.body.firstElementChild` if not already the first child.
+  - On `template.name == 'index'` only: move the banner carousel root (`banner-carousel.bc-banner-carousel` or `#shopify-block-*` wrapper) to immediately follow the navigation root.
+  - Set `--bc-design-nav-height` CSS variable on `document.documentElement` from the measured navigation height so banner/full-bleed layout can offset correctly if needed.
+- Scripts are idempotent and no-op when elements are already in the correct position.
+
+**Alternative rejected:** keeping Banner as a section block — conflicts with the decision to use two app embeds.
+
+**Alternative rejected:** relying on `position: fixed` for banner — breaks hero document flow and complicates full-bleed breakout relative to page content.
+
 ### `blocks/navigation_menu.liquid`
 
 **Schema changes:**
@@ -83,7 +106,6 @@ Data flow is unchanged: app admin writes metaobjects; theme extension reads meta
   "name": "BC Design Navigation",
   "target": "body",
   "stylesheet": "navigation-menu.css",
-  "javascript": "navigation-animations.js",
   "settings": [
     {
       "type": "paragraph",
@@ -95,9 +117,18 @@ Data flow is unchanged: app admin writes metaobjects; theme extension reads meta
 
 **Liquid changes:**
 
-- Keep existing metaobject reads, markup, snippets, inline styles, and scripts.
-- Remove redundant manual `<link>` / `<script>` tags if they duplicate schema `stylesheet` / `javascript` entries (prefer schema declarations for app embeds, matching the old `floating_demo` pattern).
-- Keep `{{ block.shopify_attributes }}` on the root wrapper for theme editor highlighting.
+- Keep existing metaobject reads, markup, snippets, and inline styles.
+- **Always** add `phaetus-nav-root--fixed` on the root element in embed mode (do not gate on `fixed_navigation`).
+- Keep **manual** script tags in this order (schema supports only one `javascript` entry; GSAP is a hard dependency):
+
+```liquid
+<script src="{{ 'gsap.min.js' | asset_url }}" defer></script>
+<script src="{{ 'navigation-animations.js' | asset_url }}" defer></script>
+<script src="{{ 'bc-design-embed-placement.js' | asset_url }}" defer></script>
+```
+
+- Remove the manual `<link rel="stylesheet">` for `navigation-menu.css` when schema `stylesheet` is declared (avoid duplicate load).
+- Keep `{{ block.shopify_attributes }}` on the root wrapper.
 - No template guard — navigation renders on all pages when the embed is enabled.
 
 ### `blocks/banner_carousel.liquid`
@@ -109,7 +140,6 @@ Data flow is unchanged: app admin writes metaobjects; theme extension reads meta
   "name": "BC Design Banner",
   "target": "body",
   "stylesheet": "banner-carousel.css",
-  "javascript": "banner-carousel.js",
   "settings": [
     {
       "type": "paragraph",
@@ -126,32 +156,76 @@ Data flow is unchanged: app admin writes metaobjects; theme extension reads meta
 ```liquid
 {% if template.name == 'index' %}
   ... existing banner rendering ...
+  <script src="{{ 'banner-carousel.js' | asset_url }}" defer></script>
+  <script src="{{ 'bc-design-embed-placement.js' | asset_url }}" defer></script>
 {% endif %}
 ```
 
+- Remove manual `<link>` / `<script>` for assets already declared in schema (`banner-carousel.css` via schema; `banner-carousel.js` stays manual because placement script must also load).
 - When not on the homepage, output nothing (no empty placeholder div).
-- Keep full-bleed CSS (`100vw` breakout), cursor SVG variables, track slide loop, and `banner_carousel_slide` snippet calls unchanged inside the guard.
+- Keep full-bleed CSS, cursor SVG variables, track slide loop, and `banner_carousel_slide` snippet calls unchanged inside the guard.
+
+### `assets/bc-design-embed-placement.js`
+
+New file. Small, no dependencies. Responsibilities documented in **DOM placement strategy** above. Must be safe to load twice (both blocks may include it on homepage).
 
 ### `blocks/banner_slide.liquid`
 
-Delete this file. It existed only as a compatibility stub for the old section sibling-block model.
+**Delete** for this project. The app is unreleased on dev stores; no merchant themes depend on the section sibling-block stub. If a deployed store later references it, reintroduce a no-op stub in a follow-up migration.
 
 ### Locales
 
-Update `extensions/bc-design-theme/locales/en.default.json` and `en.default.schema.json` with app embed block names and paragraph labels if needed for theme editor display.
+Update both locale files explicitly:
+
+**`locales/en.default.json`**
+
+```json
+{
+  "navigation_menu": {
+    "name": "BC Design Navigation"
+  },
+  "banner_carousel": {
+    "name": "BC Design Banner"
+  }
+}
+```
+
+Remove `banner_slide` key.
+
+**`locales/en.default.schema.json`**
+
+```json
+{
+  "blocks": {
+    "navigation_menu": {
+      "name": "BC Design Navigation"
+    },
+    "banner_carousel": {
+      "name": "BC Design Banner"
+    }
+  }
+}
+```
+
+Remove `banner_slide` block entry.
 
 ## DOM Placement And Styling
 
-Shopify app embeds inject at the end of `<body>`. The legacy navigation uses fixed/sticky positioning and high z-index values, so visual placement at the top of the viewport should remain correct even when the DOM node is appended late.
+Shopify app embeds inject at the end of `<body>`. Visual top-of-page placement is handled by:
+
+1. Forced `phaetus-nav-root--fixed` on navigation embed.
+2. Shared `bc-design-embed-placement.js` moving navigation and banner nodes to the top of `<body>` in deterministic order on load.
 
 Verification during implementation:
 
-- With theme Header disabled, navigation appears once at the top.
+- With theme Header disabled, navigation appears once at the top on all templates.
+- **Homepage:** banner hero appears directly below navigation, not at the bottom of the page.
+- **Non-homepage:** no banner markup in HTML source.
 - No duplicate nav bars or clipped dropdowns.
-- Homepage Banner appears below navigation when both embeds are enabled in the correct order.
-- Banner full-bleed layout and carousel JS still initialize on index pages only.
+- Banner full-bleed layout and carousel JS initialize only on index pages.
+- **Reversed App embeds order in theme editor** still produces navigation above banner (placement script invariant).
 
-**Embed order in App embeds:** Navigation should be listed/enabled above Banner so injected DOM order is navigation first, then banner.
+**Embed order in App embeds:** still recommend Navigation above Banner for clarity, but implementation must not require it.
 
 ## Merchant Setup Flow
 
@@ -214,9 +288,24 @@ There is no automatic migration. Section blocks and app embeds are separate enab
 
 ### Automated
 
-- `npm run typecheck` and `npm run lint` pass.
-- `shopify app config validate` passes (no theme extension schema errors).
+- `npm test`, `npm run typecheck`, and `npm run lint` pass.
+- `npm run config:use -- localhost` then `npm run shopify -- app config validate --path . --json`
+- Dev smoke test: `npm run dev:localhost` — confirm both modules appear under **App embeds** and homepage layout is correct.
+
+## Design Review Resolutions
+
+Reviewed against `docs/superpowers/specs/review.md` on 2026-06-24.
+
+| Finding | Resolution |
+|---------|------------|
+| Banner at body end, not below nav | `bc-design-embed-placement.js` prepends nav then banner on index |
+| Non-fixed nav at body end | App embed always uses `phaetus-nav-root--fixed` |
+| GSAP load order / single schema `javascript` | Keep manual `gsap.min.js` + `navigation-animations.js`; schema `stylesheet` only for nav |
+| Delete `banner_slide.liquid` compatibility | Delete — unreleased dev store only |
+| Embed order not guaranteed | Placement script makes order deterministic; test reversed embed order |
+| Vague locale guidance | Exact keys listed above; remove `banner_slide` |
+| Validation commands | Added localhost config validate + dev smoke test |
 
 ## Implementation Scope Estimate
 
-Single focused task: theme extension block schema and Liquid guard changes, locale updates, delete `banner_slide.liquid`, update this spec's parent migration doc cross-reference if useful. No app code changes required.
+Single focused task: theme extension block schema and Liquid changes, new `bc-design-embed-placement.js`, locale updates, delete `banner_slide.liquid`. No app code changes required.
