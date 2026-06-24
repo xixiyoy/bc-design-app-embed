@@ -1,7 +1,7 @@
-<link rel="stylesheet" href="{{ 'banner-carousel.css' | asset_url }}">
-<script src="{{ 'banner-carousel.js' | asset_url }}" defer></script>
-
 {% assign bid = block.id %}
+{% assign banner_config = metaobjects['$app:banner_config']['global'] %}
+
+{% if template.name == 'index' %}
 <style>
   #shopify-block-{{ bid }} {
     position: relative;
@@ -16,61 +16,79 @@
     --bc-cursor-nav-prev: url('{{ 'cursor-nav-prev.svg' | asset_url }}') 20 20, w-resize;
     --bc-cursor-nav-next: url('{{ 'cursor-nav-next.svg' | asset_url }}') 20 20, e-resize;
   }
+
+  .bc-design-embed--pending { visibility: hidden; }
 </style>
 
-{% assign banner_config = metaobjects['$app:banner_config']['global'] %}
-{% if banner_config == blank %}
-  <div class="bc-banner-carousel-empty" {{ block.shopify_attributes }}>Configure banner in the BC Design app.</div>
-{% else %}
-  <banner-carousel
-    class="bc-banner-carousel"
-    style="--bc-banner-aspect-ratio: 2.4 / 1; --bc-banner-mobile-height: {{ banner_config.mobile_height.value | default: 560 }}px; --bc-banner-overlay-opacity: {{ banner_config.overlay_opacity.value | default: 20 | divided_by: 100.0 }};"
-    data-autoplay="{{ banner_config.autoplay.value }}"
-    data-autoplay-speed="{{ banner_config.autoplay_speed.value | default: 5 | times: 1000 }}"
-    data-pause-on-hover="{{ banner_config.pause_on_hover.value }}"
-    data-show-indicators="{{ banner_config.show_indicators.value }}"
-    tabindex="0"
-    {{ block.shopify_attributes }}
-  >
-    <div class="bc-banner-carousel__track">
-      {% for slide in banner_config.slides.value %}
-        {% render 'banner_carousel_slide',
-          desktop_image: slide.desktop_image.value,
-          mobile_image: slide.mobile_image.value,
-          video: slide.video.value,
-          video_url: slide.video_url.value,
-          heading: slide.heading.value,
-          subheading: slide.subheading.value,
-          primary_button_label: slide.primary_button_label.value,
-          primary_button_link: slide.primary_button_link.value,
-          secondary_button_label: slide.secondary_button_label.value,
-          secondary_button_link: slide.secondary_button_link.value,
-          eager_load: 'lazy'
-        %}
-      {% endfor %}
-    </div>
-    <button type="button" class="bc-banner-carousel__nav bc-banner-carousel__nav--prev" aria-label="Previous slide" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-    <button type="button" class="bc-banner-carousel__nav bc-banner-carousel__nav--next" aria-label="Next slide" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-    <div class="bc-banner-carousel__indicators" aria-label="Banner carousel pagination"></div>
-  </banner-carousel>
+<div data-bc-design-embed="banner" class="bc-design-embed--pending">
+  {% if banner_config == blank %}
+    <div class="bc-banner-carousel-empty" {{ block.shopify_attributes }}>Configure the homepage banner in Apps → BC Design → Banner.</div>
+  {% else %}
+    <banner-carousel
+      class="bc-banner-carousel"
+      style="--bc-banner-aspect-ratio: 2.4 / 1; --bc-banner-mobile-height: {{ banner_config.mobile_height.value | default: 560 }}px; --bc-banner-overlay-opacity: {{ banner_config.overlay_opacity.value | default: 20 | divided_by: 100.0 }};"
+      data-autoplay="{{ banner_config.autoplay.value }}"
+      data-autoplay-speed="{{ banner_config.autoplay_speed.value | default: 5 | times: 1000 }}"
+      data-pause-on-hover="{{ banner_config.pause_on_hover.value }}"
+      data-show-indicators="{{ banner_config.show_indicators.value }}"
+      tabindex="0"
+      {{ block.shopify_attributes }}
+    >
+      <div class="bc-banner-carousel__track">
+        {% for slide in banner_config.slides.value %}
+          {% render 'banner_carousel_slide',
+            desktop_image: slide.desktop_image.value,
+            mobile_image: slide.mobile_image.value,
+            video: slide.video.value,
+            video_url: slide.video_url.value,
+            heading: slide.heading.value,
+            subheading: slide.subheading.value,
+            primary_button_label: slide.primary_button_label.value,
+            primary_button_link: slide.primary_button_link.value,
+            secondary_button_label: slide.secondary_button_label.value,
+            secondary_button_link: slide.secondary_button_link.value,
+            eager_load: 'lazy'
+          %}
+        {% endfor %}
+      </div>
+      <button type="button" class="bc-banner-carousel__nav bc-banner-carousel__nav--prev" aria-label="Previous slide" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button type="button" class="bc-banner-carousel__nav bc-banner-carousel__nav--next" aria-label="Next slide" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="bc-banner-carousel__indicators" aria-label="Banner carousel pagination"></div>
+    </banner-carousel>
+  {% endif %}
+
+  <script>
+  (function () {
+    var embed = document.querySelector('[data-bc-design-embed="banner"]');
+    if (!embed) return;
+    var timer = window.setTimeout(function () {
+      embed.classList.remove('bc-design-embed--pending');
+    }, 3000);
+    embed.dataset.bcDesignRevealFallback = String(timer);
+  })();
+  </script>
+  <script src="{{ 'banner-carousel.js' | asset_url }}" defer></script>
+  <script src="{{ 'bc-design-embed-placement.js' | asset_url }}" defer></script>
+</div>
 {% endif %}
 
 {% schema %}
 {
-  "name": "Banner carousel",
-  "target": "section",
+  "name": "t:blocks.banner_carousel.name",
+  "target": "body",
+  "stylesheet": "banner-carousel.css",
   "settings": [
     {
       "type": "paragraph",
-      "content": "Configure this module in Apps → BC Design → Banner."
+      "content": "Configure the homepage banner in Apps → BC Design → Banner. This embed only renders on the homepage."
     }
   ]
 }
