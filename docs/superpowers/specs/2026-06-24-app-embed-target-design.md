@@ -117,7 +117,13 @@ Shopify `target: "body"` app embeds inject near the end of `<body>`. That is an 
   - Add a temporary hide class (e.g. `bc-design-embed--pending`) on `[data-bc-design-embed]` wrappers via inline style or small critical CSS in each block until `BCDesignEmbedPlacement.run()` completes.
   - Run placement as early as safely possible (`DOMContentLoaded` or immediately if document already interactive).
   - Always remove the hide class after `run()` finishes, even when one embed is missing or empty.
+  - **Fail-open (required):** if placement fails, prefer visible misplaced content over permanently hidden embeds.
+    - Wrap placement execution in `try/catch/finally`; `revealEmbeds()` must run in `finally`.
+    - Schedule a short timeout fallback (e.g. 3000ms) that removes `bc-design-embed--pending` from all `[data-bc-design-embed]` nodes if `run()` never completes.
+    - Log placement failures with `console.warn`; do not leave navigation or banner invisible.
+    - Cancel the timeout fallback once `revealEmbeds()` has run.
   - **Test:** throttled CPU / slow network in theme preview — banner must not visibly jump from page bottom to top.
+  - **Test:** temporarily break or disable `bc-design-embed-placement.js` — enabled embeds must still become visible (fail-open).
 - `run()` no-ops when elements are already in the correct position.
 
 **Alternative rejected:** keeping Banner as a section block — conflicts with the decision to use two app embeds.
@@ -246,17 +252,24 @@ New file. Small, no dependencies. Implements the contract in **DOM placement str
 // Pseudocode — implementation guide
 window.BCDesignEmbedPlacement = window.BCDesignEmbedPlacement || {
   run() {
-    const navEmbed = document.querySelector('[data-bc-design-embed="navigation"]');
-    const bannerEmbed = document.querySelector('[data-bc-design-embed="banner"]');
-    const navBlock = navEmbed?.closest('[id^="shopify-block-"]');
-    const bannerBlock = bannerEmbed?.closest('[id^="shopify-block-"]');
-    const insertAfter = findAccessibilityAnchor(); // skip links, etc.
-    moveBlock(navBlock, insertAfter);
-    moveBlock(bannerBlock, navBlock);
-    applyBannerSpacing(navBlock, bannerBlock); // no margin-top when nav min-height reserves flow
-    revealEmbeds(); // remove .bc-design-embed--pending from all [data-bc-design-embed]
+    try {
+      const navEmbed = document.querySelector('[data-bc-design-embed="navigation"]');
+      const bannerEmbed = document.querySelector('[data-bc-design-embed="banner"]');
+      const navBlock = navEmbed?.closest('[id^="shopify-block-"]');
+      const bannerBlock = bannerEmbed?.closest('[id^="shopify-block-"]');
+      const insertAfter = findAccessibilityAnchor(); // skip links, etc.
+      moveBlock(navBlock, insertAfter);
+      moveBlock(bannerBlock, navBlock);
+      applyBannerSpacing(navBlock, bannerBlock); // no margin-top when nav min-height reserves flow
+    } catch (error) {
+      console.warn('[BC Design] embed placement failed', error);
+    } finally {
+      revealEmbeds(); // always fail-open
+      cancelRevealFallback();
+    }
   },
 };
+// scheduleRevealFallback(3000) on first load; cleared when revealEmbeds() runs
 if (!window.__BC_DESIGN_EMBED_PLACEMENT_LOADED__) {
   window.__BC_DESIGN_EMBED_PLACEMENT_LOADED__ = true;
   const start = () => window.BCDesignEmbedPlacement.run();
@@ -393,7 +406,7 @@ There is no automatic migration. Section blocks and app embeds are separate enab
 - **Theme Header disabled:** single navigation bar; dropdowns, mobile drawer, fixed nav behavior match legacy.
 - **Banner:** first visible pixel directly below fixed nav (no double gap); image ratios, overlay, indicators, autoplay, pause on hover, video fallback unchanged.
 - **Banner carousel lifecycle:** after placement DOM move, next/prev, autoplay, indicators, touch, and cursor nav each work once (no duplicate bindings).
-- **CLS:** no visible embed jump on throttled theme preview.
+- **CLS:** no visible embed jump on throttled theme preview; pending hide fails open if placement breaks.
 - **Skip link:** remains first focusable affordance on Dawn-like themes.
 
 ### Automated
@@ -440,6 +453,12 @@ Reviewed against local `docs/superpowers/specs/review.md` (not version-controlle
 | Finding | Resolution |
 |---------|------------|
 | Moving `<banner-carousel>` re-runs `connectedCallback` | Idempotent `connectedCallback` + cleanup `disconnectedCallback` in `banner-carousel.js` |
+
+### Fifth pass
+
+| Finding | Resolution |
+|---------|------------|
+| Pending hide can leave embeds invisible if placement fails | `try/finally` reveal, 3s timeout fallback, `console.warn`, fail-open smoke test |
 
 ## Implementation Scope Estimate
 
