@@ -27,6 +27,11 @@
 {% assign bid = block.id %}
 {% assign placeholder_img = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==' %}
 
+<style>
+  .bc-design-embed--pending { visibility: hidden; }
+</style>
+<div data-bc-design-embed="navigation" class="bc-design-embed--pending">
+
 {% if nav_config == blank %}
   <div class="phaetus-nav-empty" {{ block.shopify_attributes }}>Configure navigation in the BC Design app.</div>
 {% else %}
@@ -61,9 +66,8 @@
     --phaetus-secondary-nav-text-color: {{ secondary_nav_text_color }};
   }
 </style>
-<link rel="stylesheet" href="{{ 'navigation-menu.css' | asset_url }}">
 
-<div class="phaetus-nav-root{% if fixed_navigation %} phaetus-nav-root--fixed{% endif %}" id="nav-root-{{ bid }}" {{ block.shopify_attributes }}>
+<div class="phaetus-nav-root phaetus-nav-root--fixed" id="nav-root-{{ bid }}" {{ block.shopify_attributes }}>
 
   <!-- ========== Navbar ========== -->
   <nav class="navbar" id="navbar-{{ bid }}">
@@ -732,14 +736,28 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 {% endif %}
 
+<script>
+(function () {
+  var embed = document.querySelector('[data-bc-design-embed="navigation"]');
+  if (!embed) return;
+  var timer = window.setTimeout(function () {
+    embed.classList.remove('bc-design-embed--pending');
+  }, 3000);
+  embed.dataset.bcDesignRevealFallback = String(timer);
+})();
+</script>
+<script src="{{ 'bc-design-embed-placement.js' | asset_url }}" defer></script>
+</div>
+
 {% schema %}
 {
-  "name": "Navigation Menu",
-  "target": "section",
+  "name": "t:blocks.navigation_menu.name",
+  "target": "body",
+  "stylesheet": "navigation-menu.css",
   "settings": [
     {
       "type": "paragraph",
-      "content": "Configure this module in Apps → BC Design → Navigation."
+      "content": "Configure navigation in Apps → BC Design → Navigation. Disable your theme's Header section to avoid duplicate navigation."
     }
   ]
 }
