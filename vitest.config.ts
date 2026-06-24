@@ -2,10 +2,21 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: "node",
-    include: ["app/**/*.test.ts", "extensions/**/*.test.js"],
-    environmentMatchGlobs: [
-      ["extensions/**/*.test.js", "happy-dom"],
+    projects: [
+      {
+        test: {
+          name: "app",
+          environment: "node",
+          include: ["app/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
+          name: "extensions",
+          environment: "happy-dom",
+          include: ["extensions/**/*.test.js"],
+        },
+      },
     ],
   },
 });
