@@ -8,31 +8,206 @@ application_url = "https://example.com"
 embedded = true
 
 [access_scopes]
-scopes = "write_products,write_metaobjects,write_metaobject_definitions"
+scopes = "write_products,write_metaobjects,write_metaobject_definitions,read_online_store_navigation,write_files"
 
-[product.metafields.app.demo_info]
-type = "single_line_text_field"
-name = "Demo Source Info"
-description = "Tracks products created by the Shopify app template for development"
+[metaobjects.app.navigation_config]
+name = "Navigation configuration"
+display_name_field = "title"
 
-  [product.metafields.app.demo_info.access]
+  [metaobjects.app.navigation_config.access]
   admin = "merchant_read_write"
 
-[metaobjects.app.example]
-name = "Example"
-description = "An example metaobject definition created by this template"
-
-  [metaobjects.app.example.access]
-  admin = "merchant_read_write"
-
-[metaobjects.app.example.fields.title]
+[metaobjects.app.navigation_config.fields.title]
 name = "Title"
 type = "single_line_text_field"
 required = true
 
-[metaobjects.app.example.fields.description]
-name = "Description"
-type = "multi_line_text_field"
+[metaobjects.app.navigation_config.fields.fixed_navigation]
+name = "Fixed navigation"
+type = "boolean"
+
+[metaobjects.app.navigation_config.fields.logo_type]
+name = "Logo type"
+type = "single_line_text_field"
+
+[metaobjects.app.navigation_config.fields.logo_text]
+name = "Logo text"
+type = "single_line_text_field"
+
+[metaobjects.app.navigation_config.fields.logo_file]
+name = "Logo file"
+type = "file_reference"
+
+[metaobjects.app.navigation_config.fields.nav_background_color]
+name = "Navigation background color"
+type = "color"
+
+[metaobjects.app.navigation_config.fields.primary_nav_text_color]
+name = "Level 1 navigation text color"
+type = "color"
+
+[metaobjects.app.navigation_config.fields.secondary_nav_text_color]
+name = "Level 2 navigation text color"
+type = "color"
+
+[metaobjects.app.navigation_config.fields.icon_color]
+name = "Icon color"
+type = "color"
+
+[metaobjects.app.navigation_config.fields.menu_handle]
+name = "Menu handle"
+type = "single_line_text_field"
+
+[metaobjects.app.navigation_config.fields.second_level_configs]
+name = "Second-level configurations"
+type = "list.metaobject_reference<$app:navigation_second_level>"
+
+[metaobjects.app.navigation_second_level]
+name = "Navigation second-level configuration"
+display_name_field = "title"
+
+  [metaobjects.app.navigation_second_level.access]
+  admin = "merchant_read_write"
+
+[metaobjects.app.navigation_second_level.fields.title]
+name = "Title"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.navigation_second_level.fields.level_1_index]
+name = "Level 1 index"
+type = "number_integer"
+required = true
+
+[metaobjects.app.navigation_second_level.fields.level_2_index]
+name = "Level 2 index"
+type = "number_integer"
+required = true
+
+[metaobjects.app.navigation_second_level.fields.level_1_title]
+name = "Level 1 title snapshot"
+type = "single_line_text_field"
+
+[metaobjects.app.navigation_second_level.fields.level_2_title]
+name = "Level 2 title snapshot"
+type = "single_line_text_field"
+
+[metaobjects.app.navigation_second_level.fields.layout_type]
+name = "Layout type"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.navigation_second_level.fields.big_image_1]
+name = "Big image 1"
+type = "file_reference"
+
+[metaobjects.app.navigation_second_level.fields.big_image_2]
+name = "Big image 2"
+type = "file_reference"
+
+[metaobjects.app.navigation_second_level.fields.big_image_3]
+name = "Big image 3"
+type = "file_reference"
+
+[metaobjects.app.navigation_second_level.fields.ad_image]
+name = "Product-list ad image"
+type = "file_reference"
+
+[metaobjects.app.navigation_second_level.fields.ad_url]
+name = "Product-list ad link"
+type = "url"
+
+[metaobjects.app.banner_config]
+name = "Banner configuration"
+display_name_field = "title"
+
+  [metaobjects.app.banner_config.access]
+  admin = "merchant_read_write"
+
+[metaobjects.app.banner_config.fields.title]
+name = "Title"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.banner_config.fields.autoplay]
+name = "Autoplay"
+type = "boolean"
+
+[metaobjects.app.banner_config.fields.autoplay_speed]
+name = "Autoplay speed"
+type = "number_integer"
+
+[metaobjects.app.banner_config.fields.pause_on_hover]
+name = "Pause on hover"
+type = "boolean"
+
+[metaobjects.app.banner_config.fields.show_indicators]
+name = "Show indicators"
+type = "boolean"
+
+[metaobjects.app.banner_config.fields.mobile_height]
+name = "Mobile height"
+type = "number_integer"
+
+[metaobjects.app.banner_config.fields.overlay_opacity]
+name = "Overlay opacity"
+type = "number_integer"
+
+[metaobjects.app.banner_config.fields.slides]
+name = "Slides"
+type = "list.metaobject_reference<$app:banner_slide>"
+
+[metaobjects.app.banner_slide]
+name = "Banner slide"
+display_name_field = "title"
+
+  [metaobjects.app.banner_slide.access]
+  admin = "merchant_read_write"
+
+[metaobjects.app.banner_slide.fields.title]
+name = "Title"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.banner_slide.fields.desktop_image]
+name = "Desktop image"
+type = "file_reference"
+
+[metaobjects.app.banner_slide.fields.mobile_image]
+name = "Mobile image"
+type = "file_reference"
+
+[metaobjects.app.banner_slide.fields.video]
+name = "Shopify-hosted video"
+type = "file_reference"
+
+[metaobjects.app.banner_slide.fields.video_url]
+name = "External video URL"
+type = "url"
+
+[metaobjects.app.banner_slide.fields.heading]
+name = "Heading"
+type = "single_line_text_field"
+
+[metaobjects.app.banner_slide.fields.subheading]
+name = "Subheading"
+type = "single_line_text_field"
+
+[metaobjects.app.banner_slide.fields.primary_button_label]
+name = "Primary button label"
+type = "single_line_text_field"
+
+[metaobjects.app.banner_slide.fields.primary_button_link]
+name = "Primary button link"
+type = "url"
+
+[metaobjects.app.banner_slide.fields.secondary_button_label]
+name = "Secondary button label"
+type = "single_line_text_field"
+
+[metaobjects.app.banner_slide.fields.secondary_button_link]
+name = "Secondary button link"
+type = "url"
 
 [webhooks]
 api_version = "2026-07"
