@@ -1,13 +1,10 @@
 {
   "blocks": {
     "navigation_menu": {
-      "name": "Navigation Menu"
+      "name": "BC Design Navigation"
     },
     "banner_carousel": {
-      "name": "Banner carousel"
-    },
-    "banner_slide": {
-      "name": "Banner slide"
+      "name": "BC Design Banner"
     }
   }
 }
