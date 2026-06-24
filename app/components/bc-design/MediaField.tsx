@@ -5,6 +5,8 @@ type MediaFieldProps = {
   label: string;
   value?: string;
   previewUrl?: string;
+  accept?: string;
+  mediaKind?: "image" | "video";
   onChange?: (file: File | null) => void;
 };
 
@@ -13,6 +15,8 @@ export function MediaField({
   label,
   value,
   previewUrl,
+  accept = "image/*",
+  mediaKind = "image",
   onChange,
 }: MediaFieldProps) {
   const inputId = useId();
@@ -49,17 +53,32 @@ export function MediaField({
     <s-stack direction="block" gap="small">
       <s-text type="strong">{label}</s-text>
       {displayUrl ? (
-        <img
-          src={displayUrl}
-          alt={label}
-          style={{
-            maxWidth: "100%",
-            maxHeight: 120,
-            objectFit: "contain",
-            borderRadius: 4,
-            border: "1px solid var(--p-color-border, #e3e3e3)",
-          }}
-        />
+        mediaKind === "video" ? (
+          // Admin file picker preview only; captions are not available before upload.
+          // eslint-disable-next-line jsx-a11y/media-has-caption
+          <video
+            src={displayUrl}
+            controls
+            style={{
+              maxWidth: "100%",
+              maxHeight: 120,
+              borderRadius: 4,
+              border: "1px solid var(--p-color-border, #e3e3e3)",
+            }}
+          />
+        ) : (
+          <img
+            src={displayUrl}
+            alt={label}
+            style={{
+              maxWidth: "100%",
+              maxHeight: 120,
+              objectFit: "contain",
+              borderRadius: 4,
+              border: "1px solid var(--p-color-border, #e3e3e3)",
+            }}
+          />
+        )
       ) : value?.startsWith("gid://") ? (
         <s-box
           padding="base"
@@ -75,7 +94,7 @@ export function MediaField({
         id={inputId}
         type="file"
         name={name}
-        accept="image/*"
+        accept={accept}
         onChange={handleChange}
         style={{ display: "none" }}
       />
