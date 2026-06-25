@@ -32,7 +32,7 @@ describe("bc design config helpers", () => {
       autoplaySpeed: 5,
       pauseOnHover: true,
       showIndicators: true,
-      mobileHeight: 560,
+      mobileHeight: 500,
       overlayOpacity: 20,
       slides: [],
     });

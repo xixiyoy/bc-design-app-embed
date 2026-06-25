@@ -225,40 +225,65 @@
 @media (max-width: 749px) {
   .bc-banner-carousel {
     aspect-ratio: auto;
-    min-height: var(--bc-banner-mobile-height, 560px);
+    min-height: var(--bc-banner-mobile-height, 500px);
   }
 
   .bc-banner-carousel__indicators {
-    bottom: 20px;
+    bottom: 12px;
     gap: 8px;
   }
 
+  .bc-banner-carousel__indicator {
+    width: 40px;
+    height: 4px;
+  }
+
+  .bc-banner-carousel__indicator.is-active {
+    width: 60px;
+  }
+
   .bc-banner-slide__content {
-    width: auto;
+    width: 100%;
     margin: 0;
-    padding: 56px 24px 72px;
+    padding: 0 24px 40px;
     justify-content: flex-end;
+    text-align: center;
   }
 
   .bc-banner-slide__heading {
-    font-size: clamp(34px, 10vw, 52px);
+    font-size: clamp(30px, 8.7vw, 35px);
+    line-height: 1;
+    text-align: center;
   }
 
   .bc-banner-slide__subheading {
-    font-size: clamp(16px, 5vw, 24px);
+    margin-top: 12px;
+    font-size: 18px;
+    line-height: 1.2;
+    text-align: center;
   }
 
   .bc-banner-slide__buttons {
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 28px;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 10px;
+    width: fit-content;
+    margin: 20px auto 0;
   }
 
   .bc-banner-slide__button {
-    min-width: 132px;
-    min-height: 48px;
-    padding: 0 28px;
+    width: 93px;
+    height: 42px;
+    padding: 0 20px;
+    border-radius: 999px;
     font-size: 16px;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bc-banner-slide__button--secondary {
+    border-width: 1px;
   }
 }
 

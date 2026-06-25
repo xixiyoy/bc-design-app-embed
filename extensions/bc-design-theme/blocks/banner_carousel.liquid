@@ -26,7 +26,7 @@
   {% else %}
     <banner-carousel
       class="bc-banner-carousel"
-      style="--bc-banner-aspect-ratio: 2.4 / 1; --bc-banner-mobile-height: {{ banner_config.mobile_height.value | default: 560 }}px; --bc-banner-overlay-opacity: {{ banner_config.overlay_opacity.value | default: 20 | divided_by: 100.0 }};"
+      style="--bc-banner-aspect-ratio: 2.4 / 1; --bc-banner-mobile-height: {{ banner_config.mobile_height.value | default: 500 }}px; --bc-banner-overlay-opacity: {{ banner_config.overlay_opacity.value | default: 20 | divided_by: 100.0 }};"
       data-autoplay="{{ banner_config.autoplay.value }}"
       data-autoplay-speed="{{ banner_config.autoplay_speed.value | default: 5 | times: 1000 }}"
       data-pause-on-hover="{{ banner_config.pause_on_hover.value }}"
