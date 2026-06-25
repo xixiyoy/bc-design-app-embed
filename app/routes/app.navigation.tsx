@@ -1,10 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ActionFunctionArgs,
   HeadersFunction,
   LoaderFunctionArgs,
 } from "react-router";
-import { useFetcher, useLoaderData, useRevalidator } from "react-router";
+import {
+  useFetcher,
+  useLoaderData,
+  useRevalidator,
+  useRouteError,
+} from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
@@ -18,6 +23,7 @@ import {
   isLogoType,
   isNavigationLayoutType,
   NAVIGATION_LAYOUT_TYPES,
+  sanitizeNavigationSecondLevelConfig,
   type NavigationConfig,
   type NavigationSecondLevelConfig,
 } from "../lib/bc-design/config-types";
@@ -163,7 +169,7 @@ function mergeSecondLevelConfigs(
     const existing = savedByKey.get(
       secondLevelKey(item.level1Index, item.level2Index),
     );
-    return {
+    return sanitizeNavigationSecondLevelConfig({
       level1Index: item.level1Index,
       level2Index: item.level2Index,
       level1Title: item.level1Title,
@@ -175,7 +181,7 @@ function mergeSecondLevelConfigs(
       adImage: existing?.adImage,
       adUrl: existing?.adUrl ?? "",
       id: existing?.id,
-    };
+    });
   });
 }
 
@@ -228,16 +234,15 @@ function parseNavigationConfigPayload(raw: string): NavigationConfig {
     secondaryNavTextColor: parsed.secondaryNavTextColor ?? "#7a7b7e",
     iconColor: parsed.iconColor ?? "#7a7b7e",
     menuHandle: parsed.menuHandle ?? "",
-    secondLevelConfigs: (parsed.secondLevelConfigs ?? []).map((child) => {
-      const layoutType = isNavigationLayoutType(child.layoutType)
-        ? child.layoutType
-        : "product_list";
-      return {
+    secondLevelConfigs: (parsed.secondLevelConfigs ?? []).map((child) =>
+      sanitizeNavigationSecondLevelConfig({
         ...child,
-        layoutType,
+        layoutType: isNavigationLayoutType(child.layoutType)
+          ? child.layoutType
+          : "product_list",
         adUrl: child.adUrl ?? "",
-      };
-    }),
+      }),
+    ),
   };
 }
 
@@ -262,12 +267,12 @@ async function mergeUploadedFiles(
         saved.level2Index === child.level2Index,
     );
 
-    for (const field of [
-      "bigImage1",
-      "bigImage2",
-      "bigImage3",
-      "adImage",
-    ] as const) {
+    const mediaFields =
+      child.layoutType === "big_image"
+        ? (["bigImage1", "bigImage2", "bigImage3"] as const)
+        : (["adImage"] as const);
+
+    for (const field of mediaFields) {
       const uploadedFile = formData.get(
         `secondLevelConfigs.${index}.${field}`,
       );
@@ -309,11 +314,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { intent, ok: false, message: "Missing navigation config." };
     }
 
-    const previous = await loadNavigationConfig(admin);
-    const config = parseNavigationConfigPayload(configRaw);
-    await mergeUploadedFiles(admin, formData, config, previous);
-    const saved = await saveNavigationConfig(admin, config, previous);
-    return { intent, ok: true, message: "Navigation saved.", config: saved };
+    try {
+      const previous = await loadNavigationConfig(admin);
+      const config = parseNavigationConfigPayload(configRaw);
+      config.secondLevelConfigs = config.secondLevelConfigs.map(
+        sanitizeNavigationSecondLevelConfig,
+      );
+      await mergeUploadedFiles(admin, formData, config, previous);
+      config.secondLevelConfigs = config.secondLevelConfigs.map(
+        sanitizeNavigationSecondLevelConfig,
+      );
+      const saved = await saveNavigationConfig(admin, config, previous);
+      return { intent, ok: true, message: "Navigation saved.", config: saved };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to save navigation.";
+      console.error("saveNavigation failed:", error);
+      return { intent, ok: false, message };
+    }
   }
 
   return { intent, ok: false, message: "Unknown action." };
@@ -352,8 +370,14 @@ export default function NavigationPage() {
   const [localPreviewUrls, setLocalPreviewUrls] = useState<
     Record<string, string>
   >({});
+  const wasSubmittingRef = useRef(false);
+  const skipConfigSyncRef = useRef(false);
 
   useEffect(() => {
+    if (skipConfigSyncRef.current) {
+      skipConfigSyncRef.current = false;
+      return;
+    }
     const selectedMenu =
       menus.find((menu) => menu.handle === config.menuHandle) ?? null;
     setFormState(buildInitialFormState(config, selectedMenu));
@@ -381,20 +405,51 @@ export default function NavigationPage() {
     fetcher.state !== "idle" && fetcher.formMethod === "POST";
 
   useEffect(() => {
-    if (!fetcher.data) return;
-
-    if (fetcher.data.intent === "saveNavigation" && fetcher.data.ok) {
-      shopify.toast.show("Navigation saved");
-      revalidator.revalidate();
+    if (fetcher.state === "submitting" || fetcher.state === "loading") {
+      wasSubmittingRef.current = true;
       return;
     }
 
-    if (fetcher.data.intent === "setupProductBadges") {
-      shopify.toast.show(fetcher.data.message);
-    } else if (fetcher.data.message) {
-      shopify.toast.show(fetcher.data.message, { isError: true });
+    if (fetcher.state !== "idle" || !wasSubmittingRef.current) {
+      return;
     }
-  }, [fetcher.data, revalidator, shopify]);
+
+    wasSubmittingRef.current = false;
+    const data = fetcher.data;
+    if (!data) {
+      shopify.toast.show(
+        "Save request failed. The server may have timed out. Please try again.",
+        { isError: true },
+      );
+      return;
+    }
+
+    if (data.intent === "saveNavigation" && data.ok) {
+      shopify.toast.show("Navigation saved");
+      const hadPendingFiles = Object.keys(pendingFiles).length > 0;
+      if (data.config) {
+        const selectedMenu =
+          menus.find((menu) => menu.handle === data.config.menuHandle) ?? null;
+        setFormState(buildInitialFormState(data.config, selectedMenu));
+        setPendingFiles({});
+        setLocalPreviewUrls({});
+      }
+      skipConfigSyncRef.current = true;
+      if (hadPendingFiles) {
+        revalidator.revalidate();
+      }
+      return;
+    }
+
+    if (data.intent === "setupProductBadges") {
+      shopify.toast.show(data.message);
+      return;
+    }
+
+    if (data.message) {
+      shopify.toast.show(data.message, { isError: true });
+    }
+  }, [fetcher.state, fetcher.data, menus, pendingFiles, revalidator, shopify]);
 
   const updateFormState = useCallback(
     (patch: Partial<NavigationFormState>) => {
@@ -425,9 +480,48 @@ export default function NavigationPage() {
     ) => {
       setFormState((current) => ({
         ...current,
-        secondLevelConfigs: current.secondLevelConfigs.map((child, childIndex) =>
-          childIndex === index ? { ...child, ...patch } : child,
-        ),
+        secondLevelConfigs: current.secondLevelConfigs.map((child, childIndex) => {
+          if (childIndex !== index) {
+            return child;
+          }
+
+          const next = sanitizeNavigationSecondLevelConfig({
+            ...child,
+            ...patch,
+          });
+
+          if (patch.layoutType && patch.layoutType !== child.layoutType) {
+            const removedKeys =
+              patch.layoutType === "big_image"
+                ? [`${index}.adImage`]
+                : [
+                    `${index}.bigImage1`,
+                    `${index}.bigImage2`,
+                    `${index}.bigImage3`,
+                  ];
+
+            setPendingFiles((pending) => {
+              const updated = { ...pending };
+              for (const key of removedKeys) {
+                delete updated[key];
+              }
+              return updated;
+            });
+
+            setLocalPreviewUrls((previews) => {
+              const updated = { ...previews };
+              for (const key of removedKeys) {
+                if (updated[key]) {
+                  URL.revokeObjectURL(updated[key]);
+                  delete updated[key];
+                }
+              }
+              return updated;
+            });
+          }
+
+          return next;
+        }),
       }));
     },
     [],
@@ -474,22 +568,43 @@ export default function NavigationPage() {
   );
 
   const handleSave = () => {
+    const logoFile = pendingFiles.logoFile;
+    const hasPendingFiles =
+      Boolean(logoFile) ||
+      formState.secondLevelConfigs.some((child, index) => {
+        const mediaFields =
+          child.layoutType === "big_image"
+            ? (["bigImage1", "bigImage2", "bigImage3"] as const)
+            : (["adImage"] as const);
+        return mediaFields.some((field) => pendingFiles[`${index}.${field}`]);
+      });
+
+    if (!hasPendingFiles) {
+      fetcher.submit(
+        {
+          intent: "saveNavigation",
+          config: JSON.stringify(formState),
+        },
+        { method: "post" },
+      );
+      return;
+    }
+
     const formData = new FormData();
     formData.append("intent", "saveNavigation");
     formData.append("config", JSON.stringify(formState));
 
-    const logoFile = pendingFiles.logoFile;
     if (logoFile) {
       formData.append("logoFile", logoFile);
     }
 
     formState.secondLevelConfigs.forEach((child, index) => {
-      for (const field of [
-        "bigImage1",
-        "bigImage2",
-        "bigImage3",
-        "adImage",
-      ] as const) {
+      const mediaFields =
+        child.layoutType === "big_image"
+          ? (["bigImage1", "bigImage2", "bigImage3"] as const)
+          : (["adImage"] as const);
+
+      for (const field of mediaFields) {
         const file = pendingFiles[`${index}.${field}`];
         if (file) {
           formData.append(`secondLevelConfigs.${index}.${field}`, file);
@@ -714,6 +829,9 @@ export default function NavigationPage() {
                           trackPendingFile(`${index}.bigImage3`, file)
                         }
                       />
+                    </>
+                  ) : (
+                    <>
                       <MediaField
                         name={`secondLevelConfigs.${index}.adImage`}
                         label="Ad image"
@@ -736,7 +854,7 @@ export default function NavigationPage() {
                         }
                       />
                     </>
-                  ) : null}
+                  )}
                 </s-stack>
               </s-box>
             ))}
@@ -749,6 +867,22 @@ export default function NavigationPage() {
       </s-section>
     </s-page>
   );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  if (error instanceof Error && error.message.includes("Failed to fetch")) {
+    return (
+      <s-page heading="Navigation">
+        <s-banner tone="critical" heading="Network error">
+          Save request timed out or could not reach the app server. This often
+          happens when Render is waking up or when the menu has many items.
+          Please wait a moment and try again.
+        </s-banner>
+      </s-page>
+    );
+  }
+  return boundary.error(error);
 }
 
 export const headers: HeadersFunction = (headersArgs) => {

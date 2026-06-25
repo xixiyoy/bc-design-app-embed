@@ -15,6 +15,7 @@ import {
   bannerSlideHandle,
   clampBannerNumber,
   secondLevelHandle,
+  sanitizeNavigationSecondLevelConfig,
   type BannerConfig,
   type BannerSlideConfig,
   type NavigationConfig,
@@ -416,21 +417,32 @@ export async function loadBannerConfig(
 }
 
 function buildSecondLevelFields(config: NavigationSecondLevelConfig) {
-  return [
+  const sanitized = sanitizeNavigationSecondLevelConfig(config);
+  const shared = [
     {
       key: "title",
-      value: `${config.level1Title} › ${config.level2Title}`,
+      value: `${sanitized.level1Title} › ${sanitized.level2Title}`,
     },
-    { key: "level_1_index", value: String(config.level1Index) },
-    { key: "level_2_index", value: String(config.level2Index) },
-    { key: "level_1_title", value: config.level1Title },
-    { key: "level_2_title", value: config.level2Title },
-    { key: "layout_type", value: config.layoutType },
-    optionalField("big_image_1", config.bigImage1),
-    optionalField("big_image_2", config.bigImage2),
-    optionalField("big_image_3", config.bigImage3),
-    optionalField("ad_image", config.adImage),
-    optionalField("ad_url", config.adUrl),
+    { key: "level_1_index", value: String(sanitized.level1Index) },
+    { key: "level_2_index", value: String(sanitized.level2Index) },
+    { key: "level_1_title", value: sanitized.level1Title },
+    { key: "level_2_title", value: sanitized.level2Title },
+    { key: "layout_type", value: sanitized.layoutType },
+  ];
+
+  if (sanitized.layoutType === "big_image") {
+    return [
+      ...shared,
+      optionalField("big_image_1", sanitized.bigImage1),
+      optionalField("big_image_2", sanitized.bigImage2),
+      optionalField("big_image_3", sanitized.bigImage3),
+    ].filter((field): field is { key: string; value: string } => field != null);
+  }
+
+  return [
+    ...shared,
+    optionalField("ad_image", sanitized.adImage),
+    optionalField("ad_url", sanitized.adUrl),
   ].filter((field): field is { key: string; value: string } => field != null);
 }
 
@@ -457,19 +469,19 @@ export async function saveNavigationConfig(
   config: NavigationConfig,
   previous?: NavigationConfig,
 ): Promise<NavigationConfig> {
-  const childGids: string[] = [];
-
-  for (const child of config.secondLevelConfigs) {
-    const gid = await upsertMetaobject(
-      admin,
-      NAVIGATION_SECOND_LEVEL_TYPE,
-      secondLevelHandle(child.level1Index, child.level2Index),
-      buildSecondLevelFields(child),
-    );
-    if (gid) {
-      childGids.push(gid);
-    }
-  }
+  const childGids = (
+    await Promise.all(
+      config.secondLevelConfigs.map(async (child) => {
+        const sanitized = sanitizeNavigationSecondLevelConfig(child);
+        return upsertMetaobject(
+          admin,
+          NAVIGATION_SECOND_LEVEL_TYPE,
+          secondLevelHandle(sanitized.level1Index, sanitized.level2Index),
+          buildSecondLevelFields(sanitized),
+        );
+      }),
+    )
+  ).filter((gid): gid is string => Boolean(gid));
 
   await upsertMetaobject(admin, NAVIGATION_CONFIG_TYPE, NAVIGATION_CONFIG_HANDLE, [
     { key: "title", value: "Navigation" },
@@ -521,19 +533,18 @@ export async function saveBannerConfig(
     mobileHeight: clampBannerNumber("mobileHeight", config.mobileHeight),
   };
 
-  const childGids: string[] = [];
-
-  for (const [index, slide] of clampedConfig.slides.entries()) {
-    const gid = await upsertMetaobject(
-      admin,
-      BANNER_SLIDE_TYPE,
-      bannerSlideHandle(slide.id),
-      buildBannerSlideFields(slide, index),
-    );
-    if (gid) {
-      childGids.push(gid);
-    }
-  }
+  const childGids = (
+    await Promise.all(
+      clampedConfig.slides.map((slide, index) =>
+        upsertMetaobject(
+          admin,
+          BANNER_SLIDE_TYPE,
+          bannerSlideHandle(slide.id),
+          buildBannerSlideFields(slide, index),
+        ),
+      ),
+    )
+  ).filter((gid): gid is string => Boolean(gid));
 
   await upsertMetaobject(admin, BANNER_CONFIG_TYPE, BANNER_CONFIG_HANDLE, [
     { key: "title", value: "Banner" },

@@ -103,6 +103,34 @@ export function isNavigationLayoutType(
   return NAVIGATION_LAYOUT_TYPES.includes(value as NavigationLayoutType);
 }
 
+export function sanitizeNavigationSecondLevelConfig(
+  config: NavigationSecondLevelConfig,
+): NavigationSecondLevelConfig {
+  const base = {
+    id: config.id,
+    level1Index: config.level1Index,
+    level2Index: config.level2Index,
+    level1Title: config.level1Title,
+    level2Title: config.level2Title,
+    layoutType: config.layoutType,
+  };
+
+  if (config.layoutType === "big_image") {
+    return {
+      ...base,
+      bigImage1: config.bigImage1,
+      bigImage2: config.bigImage2,
+      bigImage3: config.bigImage3,
+    };
+  }
+
+  return {
+    ...base,
+    adImage: config.adImage,
+    adUrl: config.adUrl ?? "",
+  };
+}
+
 export function clampBannerNumber(
   field: "autoplaySpeed" | "overlayOpacity" | "mobileHeight",
   value: number,

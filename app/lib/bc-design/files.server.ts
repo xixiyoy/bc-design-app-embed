@@ -136,7 +136,7 @@ export async function createShopifyFileFromUpload(
     files: [
       {
         originalSource: stagedTarget.resourceUrl,
-        contentType: mimeType,
+        contentType: stagedUploadResource(mimeType),
       },
     ],
   });

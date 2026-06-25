@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ActionFunctionArgs,
   HeadersFunction,
@@ -249,8 +249,14 @@ export default function BannerPage() {
   const [localPreviewUrls, setLocalPreviewUrls] = useState<
     Record<string, string>
   >({});
+  const wasSubmittingRef = useRef(false);
+  const skipConfigSyncRef = useRef(false);
 
   useEffect(() => {
+    if (skipConfigSyncRef.current) {
+      skipConfigSyncRef.current = false;
+      return;
+    }
     setFormState(config);
     setPendingFiles({});
     setLocalPreviewUrls({});
@@ -260,18 +266,35 @@ export default function BannerPage() {
     fetcher.state !== "idle" && fetcher.formMethod === "POST";
 
   useEffect(() => {
-    if (!fetcher.data) return;
+    if (fetcher.state === "submitting" || fetcher.state === "loading") {
+      wasSubmittingRef.current = true;
+      return;
+    }
 
-    if (fetcher.data.intent === "saveBanner" && fetcher.data.ok) {
+    if (fetcher.state !== "idle" || !wasSubmittingRef.current) {
+      return;
+    }
+
+    wasSubmittingRef.current = false;
+    const data = fetcher.data;
+    if (!data) return;
+
+    if (data.intent === "saveBanner" && data.ok) {
       shopify.toast.show("Banner saved");
+      if (data.config) {
+        setFormState(data.config);
+        setPendingFiles({});
+        setLocalPreviewUrls({});
+      }
+      skipConfigSyncRef.current = true;
       revalidator.revalidate();
       return;
     }
 
-    if (fetcher.data.message) {
-      shopify.toast.show(fetcher.data.message, { isError: true });
+    if (data.message) {
+      shopify.toast.show(data.message, { isError: true });
     }
-  }, [fetcher.data, revalidator, shopify]);
+  }, [fetcher.state, fetcher.data, revalidator, shopify]);
 
   const updateFormState = useCallback((patch: Partial<BannerFormState>) => {
     setFormState((current) => ({ ...current, ...patch }));
