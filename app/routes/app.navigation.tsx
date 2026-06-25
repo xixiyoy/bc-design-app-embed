@@ -34,7 +34,9 @@ import {
   type ShopifyMenuItem,
 } from "../lib/bc-design/menus.server";
 import {
+  getMissingBcDesignMetaobjectDefinitions,
   loadNavigationConfig,
+  missingMetaobjectDefinitionsMessage,
   saveNavigationConfig,
 } from "../lib/bc-design/metaobjects.server";
 import { ensureProductBadgeMetafieldDefinitions } from "../lib/bc-design/product-badges.server";
@@ -288,14 +290,17 @@ async function mergeUploadedFiles(
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
-  const config = await loadNavigationConfig(admin);
-  const menus = await loadMenus(admin);
+  const [config, menus, missingMetaobjectDefinitions] = await Promise.all([
+    loadNavigationConfig(admin),
+    loadMenus(admin),
+    getMissingBcDesignMetaobjectDefinitions(admin),
+  ]);
   const filePreviewUrls = await resolveFilePreviewUrls(
     admin,
     collectFileGids(config),
   );
 
-  return { config, menus, filePreviewUrls };
+  return { config, menus, filePreviewUrls, missingMetaobjectDefinitions };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -315,6 +320,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     try {
+      const missingDefinitions =
+        await getMissingBcDesignMetaobjectDefinitions(admin);
+      if (missingDefinitions.length > 0) {
+        return {
+          intent,
+          ok: false,
+          message: missingMetaobjectDefinitionsMessage(missingDefinitions),
+        };
+      }
+
       const previous = await loadNavigationConfig(admin);
       const config = parseNavigationConfigPayload(configRaw);
       config.secondLevelConfigs = config.secondLevelConfigs.map(
@@ -355,7 +370,8 @@ function buildInitialFormState(
 }
 
 export default function NavigationPage() {
-  const { config, menus, filePreviewUrls } = useLoaderData<typeof loader>();
+  const { config, menus, filePreviewUrls, missingMetaobjectDefinitions } =
+    useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const revalidator = useRevalidator();
   const shopify = useAppBridge();
@@ -648,6 +664,14 @@ export default function NavigationPage() {
       >
         Set up product badges
       </s-button>
+
+      {missingMetaobjectDefinitions.length > 0 ? (
+        <s-section>
+          <s-banner tone="warning" heading="App data definitions missing">
+            {missingMetaobjectDefinitionsMessage(missingMetaobjectDefinitions)}
+          </s-banner>
+        </s-section>
+      ) : null}
 
       <s-section heading="Navigation settings">
         <s-stack direction="block" gap="base">

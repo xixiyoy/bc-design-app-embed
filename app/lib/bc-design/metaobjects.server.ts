@@ -173,6 +173,62 @@ const DELETE_METAOBJECT_MUTATION = `#graphql
   }
 `;
 
+const METAOBJECT_DEFINITIONS_QUERY = `#graphql
+  query BcDesignMetaobjectDefinitions($first: Int!) {
+    metaobjectDefinitions(first: $first) {
+      nodes {
+        type
+      }
+    }
+  }
+`;
+
+const REQUIRED_APP_METAOBJECT_TYPES = [
+  NAVIGATION_CONFIG_TYPE,
+  NAVIGATION_SECOND_LEVEL_TYPE,
+  BANNER_CONFIG_TYPE,
+  BANNER_SLIDE_TYPE,
+] as const;
+
+type MetaobjectDefinitionsData = {
+  metaobjectDefinitions: {
+    nodes: Array<{ type: string }>;
+  };
+};
+
+function isInstalledMetaobjectType(
+  installedTypes: Iterable<string>,
+  expectedType: string,
+) {
+  const suffix = expectedType.replace(/^\$app:/, "");
+  for (const type of installedTypes) {
+    if (type === expectedType || type.endsWith(`--${suffix}`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export async function getMissingBcDesignMetaobjectDefinitions(
+  admin: AdminGraphqlClient,
+): Promise<string[]> {
+  const data = await adminGraphql<MetaobjectDefinitionsData>(
+    admin,
+    METAOBJECT_DEFINITIONS_QUERY,
+    { first: 50 },
+  );
+  const installedTypes = data.metaobjectDefinitions.nodes.map((node) => node.type);
+
+  return REQUIRED_APP_METAOBJECT_TYPES.filter(
+    (expectedType) => !isInstalledMetaobjectType(installedTypes, expectedType),
+  );
+}
+
+export function missingMetaobjectDefinitionsMessage(missing: string[]) {
+  const labels = missing.map((type) => type.replace(/^\$app:/, "")).join(", ");
+  return `This store is missing app metaobject definitions (${labels}). Deploy the latest app version with "shopify app deploy --config render", then reinstall or update the app on this store.`;
+}
+
 function fieldMap(fields: MetaobjectField[]) {
   return new Map(fields.map((field) => [field.key, field]));
 }
