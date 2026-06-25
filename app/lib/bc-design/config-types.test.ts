@@ -10,7 +10,7 @@ import {
 
 describe("bc design config helpers", () => {
   it("creates stable second-level handles from 1-based indexes", () => {
-    expect(secondLevelHandle(1, 2)).toBe("l1-1-l2-2");
+    expect(secondLevelHandle(1, 2)).toBe("l1-01-l2-02");
   });
 
   it("creates banner slide handles from persisted ids", () => {

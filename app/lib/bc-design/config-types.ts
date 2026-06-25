@@ -1,8 +1,8 @@
 export const NAVIGATION_CONFIG_TYPE = "$app:navigation_config";
-export const NAVIGATION_CONFIG_HANDLE = "global";
+export const NAVIGATION_CONFIG_HANDLE = "default";
 export const NAVIGATION_SECOND_LEVEL_TYPE = "$app:navigation_second_level";
 export const BANNER_CONFIG_TYPE = "$app:banner_config";
-export const BANNER_CONFIG_HANDLE = "global";
+export const BANNER_CONFIG_HANDLE = "default";
 export const BANNER_SLIDE_TYPE = "$app:banner_slide";
 
 export const LOGO_TYPES = ["text", "image"] as const;
@@ -86,7 +86,9 @@ export const BANNER_DEFAULTS: BannerConfig = {
 };
 
 export function secondLevelHandle(level1Index: number, level2Index: number) {
-  return `l1-${level1Index}-l2-${level2Index}`;
+  const l1 = String(level1Index).padStart(2, "0");
+  const l2 = String(level2Index).padStart(2, "0");
+  return `l1-${l1}-l2-${l2}`;
 }
 
 export function bannerSlideHandle(id: string) {
@@ -142,5 +144,5 @@ export function clampBannerNumber(
 
 export function missingMetaobjectDefinitionsMessage(missing: string[]) {
   const labels = missing.map((type) => type.replace(/^\$app:/, "")).join(", ");
-  return `This store is missing app metaobject definitions (${labels}). Deploy the latest app version with "shopify app deploy --config render", then reinstall or update the app on this store.`;
+  return `This store is missing app metaobject definitions for the current app install (${labels}). Run "shopify app deploy --config render", then uninstall and reinstall the app on this store so Shopify syncs the definitions and new access scopes.`;
 }

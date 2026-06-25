@@ -8,7 +8,7 @@ application_url = "https://example.com"
 embedded = true
 
 [access_scopes]
-scopes = "write_products,write_metaobjects,write_metaobject_definitions,read_online_store_navigation,write_files"
+scopes = "write_products,write_metaobjects,write_metaobject_definitions,read_metaobject_definitions,read_metaobjects,read_online_store_navigation,write_files"
 
 [metaobjects.app.navigation_config]
 name = "Navigation configuration"

@@ -173,14 +173,12 @@ const DELETE_METAOBJECT_MUTATION = `#graphql
   }
 `;
 
-const METAOBJECT_DEFINITIONS_QUERY = `#graphql
-  query BcDesignMetaobjectDefinitions($first: Int!) {
-    metaobjectDefinitions(first: $first) {
-      nodes {
-        id
-        name
-        type
-      }
+const METAOBJECT_DEFINITION_BY_TYPE_QUERY = `#graphql
+  query BcDesignMetaobjectDefinitionByType($type: String!) {
+    metaobjectDefinitionByType(type: $type) {
+      id
+      name
+      type
     }
   }
 `;
@@ -192,69 +190,55 @@ const REQUIRED_APP_METAOBJECT_TYPES = [
   BANNER_SLIDE_TYPE,
 ] as const;
 
-type MetaobjectDefinitionsData = {
-  metaobjectDefinitions: {
-    nodes: Array<{ id: string; name: string; type: string }>;
-  };
+type MetaobjectDefinitionByTypeData = {
+  metaobjectDefinitionByType: {
+    id: string;
+    name: string;
+    type: string;
+  } | null;
 };
 
-type MetaobjectTypeMap = Map<string, string>;
+type MetaobjectTypeMap = Set<string>;
 
-function logicalTypeSuffix(logicalType: string) {
-  return logicalType.replace(/^\$app:/, "");
-}
-
-function matchesLogicalMetaobjectType(
-  installedType: string,
-  logicalType: string,
-) {
-  const suffix = logicalTypeSuffix(logicalType);
-  return installedType === logicalType || installedType.endsWith(`--${suffix}`);
-}
-
-async function loadMetaobjectTypeMap(
+async function loadInstalledMetaobjectTypes(
   admin: AdminGraphqlClient,
 ): Promise<MetaobjectTypeMap> {
-  const data = await adminGraphql<MetaobjectDefinitionsData>(
-    admin,
-    METAOBJECT_DEFINITIONS_QUERY,
-    { first: 50 },
+  const installed = new Set<string>();
+
+  await Promise.all(
+    REQUIRED_APP_METAOBJECT_TYPES.map(async (logicalType) => {
+      const data = await adminGraphql<MetaobjectDefinitionByTypeData>(
+        admin,
+        METAOBJECT_DEFINITION_BY_TYPE_QUERY,
+        { type: logicalType },
+      );
+      if (data.metaobjectDefinitionByType) {
+        installed.add(logicalType);
+      }
+    }),
   );
 
-  const typeMap: MetaobjectTypeMap = new Map();
-  for (const node of data.metaobjectDefinitions.nodes) {
-    for (const logicalType of REQUIRED_APP_METAOBJECT_TYPES) {
-      if (
-        matchesLogicalMetaobjectType(node.type, logicalType) &&
-        !typeMap.has(logicalType)
-      ) {
-        typeMap.set(logicalType, node.type);
-      }
-    }
-  }
-
-  return typeMap;
+  return installed;
 }
 
-function requireMetaobjectType(
-  typeMap: MetaobjectTypeMap,
+function requireMetaobjectDefinition(
+  installedTypes: MetaobjectTypeMap,
   logicalType: string,
 ): string {
-  const resolvedType = typeMap.get(logicalType);
-  if (!resolvedType) {
+  if (!installedTypes.has(logicalType)) {
     throw new Error(
-      `No metaobject definition exists for type "${logicalType}".`,
+      `No metaobject definition exists for type "${logicalType}" on this app installation.`,
     );
   }
-  return resolvedType;
+  return logicalType;
 }
 
 export async function getMissingBcDesignMetaobjectDefinitions(
   admin: AdminGraphqlClient,
 ): Promise<string[]> {
-  const typeMap = await loadMetaobjectTypeMap(admin);
+  const installedTypes = await loadInstalledMetaobjectTypes(admin);
   return REQUIRED_APP_METAOBJECT_TYPES.filter(
-    (logicalType) => !typeMap.has(logicalType),
+    (logicalType) => !installedTypes.has(logicalType),
   );
 }
 
@@ -406,7 +390,14 @@ async function upsertMetaobject(
       metaobject: { fields },
     },
   );
-  assertNoUserErrors(data.metaobjectUpsert.userErrors);
+  if (data.metaobjectUpsert.userErrors?.length) {
+    const details = data.metaobjectUpsert.userErrors
+      .map((error) => error.message)
+      .join("; ");
+    throw new Error(
+      `metaobjectUpsert failed for type "${type}" handle "${handle}": ${details}`,
+    );
+  }
   return data.metaobjectUpsert.metaobject?.id;
 }
 
@@ -422,10 +413,10 @@ function optionalField(key: string, value: string | undefined) {
 export async function loadNavigationConfig(
   admin: AdminGraphqlClient,
 ): Promise<NavigationConfig> {
-  const typeMap = await loadMetaobjectTypeMap(admin);
+  const installedTypes = await loadInstalledMetaobjectTypes(admin);
   const metaobject = await loadMetaobjectByHandle(
     admin,
-    requireMetaobjectType(typeMap, NAVIGATION_CONFIG_TYPE),
+    requireMetaobjectDefinition(installedTypes, NAVIGATION_CONFIG_TYPE),
     NAVIGATION_CONFIG_HANDLE,
   );
   if (!metaobject) {
@@ -464,10 +455,10 @@ export async function loadNavigationConfig(
 export async function loadBannerConfig(
   admin: AdminGraphqlClient,
 ): Promise<BannerConfig> {
-  const typeMap = await loadMetaobjectTypeMap(admin);
+  const installedTypes = await loadInstalledMetaobjectTypes(admin);
   const metaobject = await loadMetaobjectByHandle(
     admin,
-    requireMetaobjectType(typeMap, BANNER_CONFIG_TYPE),
+    requireMetaobjectDefinition(installedTypes, BANNER_CONFIG_TYPE),
     BANNER_CONFIG_HANDLE,
   );
   if (!metaobject) {
@@ -556,13 +547,13 @@ export async function saveNavigationConfig(
   config: NavigationConfig,
   previous?: NavigationConfig,
 ): Promise<NavigationConfig> {
-  const typeMap = await loadMetaobjectTypeMap(admin);
-  const navigationConfigType = requireMetaobjectType(
-    typeMap,
+  const installedTypes = await loadInstalledMetaobjectTypes(admin);
+  const navigationConfigType = requireMetaobjectDefinition(
+    installedTypes,
     NAVIGATION_CONFIG_TYPE,
   );
-  const navigationSecondLevelType = requireMetaobjectType(
-    typeMap,
+  const navigationSecondLevelType = requireMetaobjectDefinition(
+    installedTypes,
     NAVIGATION_SECOND_LEVEL_TYPE,
   );
 
@@ -630,9 +621,15 @@ export async function saveBannerConfig(
     mobileHeight: clampBannerNumber("mobileHeight", config.mobileHeight),
   };
 
-  const typeMap = await loadMetaobjectTypeMap(admin);
-  const bannerConfigType = requireMetaobjectType(typeMap, BANNER_CONFIG_TYPE);
-  const bannerSlideType = requireMetaobjectType(typeMap, BANNER_SLIDE_TYPE);
+  const installedTypes = await loadInstalledMetaobjectTypes(admin);
+  const bannerConfigType = requireMetaobjectDefinition(
+    installedTypes,
+    BANNER_CONFIG_TYPE,
+  );
+  const bannerSlideType = requireMetaobjectDefinition(
+    installedTypes,
+    BANNER_SLIDE_TYPE,
+  );
 
   const childGids = (
     await Promise.all(
