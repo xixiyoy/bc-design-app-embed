@@ -177,6 +177,8 @@ const METAOBJECT_DEFINITIONS_QUERY = `#graphql
   query BcDesignMetaobjectDefinitions($first: Int!) {
     metaobjectDefinitions(first: $first) {
       nodes {
+        id
+        name
         type
       }
     }
@@ -192,35 +194,67 @@ const REQUIRED_APP_METAOBJECT_TYPES = [
 
 type MetaobjectDefinitionsData = {
   metaobjectDefinitions: {
-    nodes: Array<{ type: string }>;
+    nodes: Array<{ id: string; name: string; type: string }>;
   };
 };
 
-function isInstalledMetaobjectType(
-  installedTypes: Iterable<string>,
-  expectedType: string,
-) {
-  const suffix = expectedType.replace(/^\$app:/, "");
-  for (const type of installedTypes) {
-    if (type === expectedType || type.endsWith(`--${suffix}`)) {
-      return true;
-    }
-  }
-  return false;
+type MetaobjectTypeMap = Map<string, string>;
+
+function logicalTypeSuffix(logicalType: string) {
+  return logicalType.replace(/^\$app:/, "");
 }
 
-export async function getMissingBcDesignMetaobjectDefinitions(
+function matchesLogicalMetaobjectType(
+  installedType: string,
+  logicalType: string,
+) {
+  const suffix = logicalTypeSuffix(logicalType);
+  return installedType === logicalType || installedType.endsWith(`--${suffix}`);
+}
+
+async function loadMetaobjectTypeMap(
   admin: AdminGraphqlClient,
-): Promise<string[]> {
+): Promise<MetaobjectTypeMap> {
   const data = await adminGraphql<MetaobjectDefinitionsData>(
     admin,
     METAOBJECT_DEFINITIONS_QUERY,
     { first: 50 },
   );
-  const installedTypes = data.metaobjectDefinitions.nodes.map((node) => node.type);
 
+  const typeMap: MetaobjectTypeMap = new Map();
+  for (const node of data.metaobjectDefinitions.nodes) {
+    for (const logicalType of REQUIRED_APP_METAOBJECT_TYPES) {
+      if (
+        matchesLogicalMetaobjectType(node.type, logicalType) &&
+        !typeMap.has(logicalType)
+      ) {
+        typeMap.set(logicalType, node.type);
+      }
+    }
+  }
+
+  return typeMap;
+}
+
+function requireMetaobjectType(
+  typeMap: MetaobjectTypeMap,
+  logicalType: string,
+): string {
+  const resolvedType = typeMap.get(logicalType);
+  if (!resolvedType) {
+    throw new Error(
+      `No metaobject definition exists for type "${logicalType}".`,
+    );
+  }
+  return resolvedType;
+}
+
+export async function getMissingBcDesignMetaobjectDefinitions(
+  admin: AdminGraphqlClient,
+): Promise<string[]> {
+  const typeMap = await loadMetaobjectTypeMap(admin);
   return REQUIRED_APP_METAOBJECT_TYPES.filter(
-    (expectedType) => !isInstalledMetaobjectType(installedTypes, expectedType),
+    (logicalType) => !typeMap.has(logicalType),
   );
 }
 
@@ -393,9 +427,10 @@ function optionalField(key: string, value: string | undefined) {
 export async function loadNavigationConfig(
   admin: AdminGraphqlClient,
 ): Promise<NavigationConfig> {
+  const typeMap = await loadMetaobjectTypeMap(admin);
   const metaobject = await loadMetaobjectByHandle(
     admin,
-    NAVIGATION_CONFIG_TYPE,
+    requireMetaobjectType(typeMap, NAVIGATION_CONFIG_TYPE),
     NAVIGATION_CONFIG_HANDLE,
   );
   if (!metaobject) {
@@ -434,9 +469,10 @@ export async function loadNavigationConfig(
 export async function loadBannerConfig(
   admin: AdminGraphqlClient,
 ): Promise<BannerConfig> {
+  const typeMap = await loadMetaobjectTypeMap(admin);
   const metaobject = await loadMetaobjectByHandle(
     admin,
-    BANNER_CONFIG_TYPE,
+    requireMetaobjectType(typeMap, BANNER_CONFIG_TYPE),
     BANNER_CONFIG_HANDLE,
   );
   if (!metaobject) {
@@ -525,13 +561,23 @@ export async function saveNavigationConfig(
   config: NavigationConfig,
   previous?: NavigationConfig,
 ): Promise<NavigationConfig> {
+  const typeMap = await loadMetaobjectTypeMap(admin);
+  const navigationConfigType = requireMetaobjectType(
+    typeMap,
+    NAVIGATION_CONFIG_TYPE,
+  );
+  const navigationSecondLevelType = requireMetaobjectType(
+    typeMap,
+    NAVIGATION_SECOND_LEVEL_TYPE,
+  );
+
   const childGids = (
     await Promise.all(
       config.secondLevelConfigs.map(async (child) => {
         const sanitized = sanitizeNavigationSecondLevelConfig(child);
         return upsertMetaobject(
           admin,
-          NAVIGATION_SECOND_LEVEL_TYPE,
+          navigationSecondLevelType,
           secondLevelHandle(sanitized.level1Index, sanitized.level2Index),
           buildSecondLevelFields(sanitized),
         );
@@ -539,7 +585,7 @@ export async function saveNavigationConfig(
     )
   ).filter((gid): gid is string => Boolean(gid));
 
-  await upsertMetaobject(admin, NAVIGATION_CONFIG_TYPE, NAVIGATION_CONFIG_HANDLE, [
+  await upsertMetaobject(admin, navigationConfigType, NAVIGATION_CONFIG_HANDLE, [
     { key: "title", value: "Navigation" },
     { key: "fixed_navigation", value: String(config.fixedNavigation) },
     { key: "logo_type", value: config.logoType },
@@ -589,12 +635,16 @@ export async function saveBannerConfig(
     mobileHeight: clampBannerNumber("mobileHeight", config.mobileHeight),
   };
 
+  const typeMap = await loadMetaobjectTypeMap(admin);
+  const bannerConfigType = requireMetaobjectType(typeMap, BANNER_CONFIG_TYPE);
+  const bannerSlideType = requireMetaobjectType(typeMap, BANNER_SLIDE_TYPE);
+
   const childGids = (
     await Promise.all(
       clampedConfig.slides.map((slide, index) =>
         upsertMetaobject(
           admin,
-          BANNER_SLIDE_TYPE,
+          bannerSlideType,
           bannerSlideHandle(slide.id),
           buildBannerSlideFields(slide, index),
         ),
@@ -602,7 +652,7 @@ export async function saveBannerConfig(
     )
   ).filter((gid): gid is string => Boolean(gid));
 
-  await upsertMetaobject(admin, BANNER_CONFIG_TYPE, BANNER_CONFIG_HANDLE, [
+  await upsertMetaobject(admin, bannerConfigType, BANNER_CONFIG_HANDLE, [
     { key: "title", value: "Banner" },
     { key: "autoplay", value: String(clampedConfig.autoplay) },
     {
@@ -626,7 +676,7 @@ export async function saveBannerConfig(
     for (const slideId of removedSlideIds) {
       const metaobject = await loadMetaobjectByHandle(
         admin,
-        BANNER_SLIDE_TYPE,
+        bannerSlideType,
         bannerSlideHandle(slideId),
       );
       if (metaobject?.id) {
