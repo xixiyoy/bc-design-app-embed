@@ -258,11 +258,6 @@ export async function getMissingBcDesignMetaobjectDefinitions(
   );
 }
 
-export function missingMetaobjectDefinitionsMessage(missing: string[]) {
-  const labels = missing.map((type) => type.replace(/^\$app:/, "")).join(", ");
-  return `This store is missing app metaobject definitions (${labels}). Deploy the latest app version with "shopify app deploy --config render", then reinstall or update the app on this store.`;
-}
-
 function fieldMap(fields: MetaobjectField[]) {
   return new Map(fields.map((field) => [field.key, field]));
 }

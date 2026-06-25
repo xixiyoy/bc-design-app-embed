@@ -23,6 +23,7 @@ import {
   isLogoType,
   isNavigationLayoutType,
   NAVIGATION_LAYOUT_TYPES,
+  missingMetaobjectDefinitionsMessage,
   sanitizeNavigationSecondLevelConfig,
   type NavigationConfig,
   type NavigationSecondLevelConfig,
@@ -36,7 +37,6 @@ import {
 import {
   getMissingBcDesignMetaobjectDefinitions,
   loadNavigationConfig,
-  missingMetaobjectDefinitionsMessage,
   saveNavigationConfig,
 } from "../lib/bc-design/metaobjects.server";
 import { ensureProductBadgeMetafieldDefinitions } from "../lib/bc-design/product-badges.server";

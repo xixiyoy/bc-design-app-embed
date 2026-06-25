@@ -139,3 +139,8 @@ export function clampBannerNumber(
   if (field === "overlayOpacity") return Math.min(60, Math.max(0, value));
   return Math.min(760, Math.max(360, value));
 }
+
+export function missingMetaobjectDefinitionsMessage(missing: string[]) {
+  const labels = missing.map((type) => type.replace(/^\$app:/, "")).join(", ");
+  return `This store is missing app metaobject definitions (${labels}). Deploy the latest app version with "shopify app deploy --config render", then reinstall or update the app on this store.`;
+}
