@@ -225,7 +225,7 @@
 @media (max-width: 749px) {
   .bc-banner-carousel {
     aspect-ratio: auto;
-    min-height: var(--bc-banner-mobile-height, 500px);
+    height: var(--bc-banner-mobile-height, 500px);
   }
 
   .bc-banner-carousel__indicators {
