@@ -264,6 +264,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 type BannerFormState = BannerConfig;
 
+function buildComputationStates(
+  config: BannerConfig,
+): Record<string, SlideComputationState> {
+  const adaptiveEnabled = config.brightnessAdaptiveOverlayEnabled;
+  const initialStates: Record<string, SlideComputationState> = {};
+  for (const slide of config.slides) {
+    const hasDesktopImage = Boolean(slide.desktopImage);
+    const hasMobileImage = Boolean(slide.mobileImage);
+    const desktopBrightness = slide.desktopAverageBrightness ?? 0;
+    const mobileBrightness = slide.mobileAverageBrightness ?? 0;
+
+    const desktopComputed =
+      hasDesktopImage && (!adaptiveEnabled || desktopBrightness !== 0);
+    const mobileComputed =
+      hasMobileImage && (!adaptiveEnabled || mobileBrightness !== 0);
+
+    initialStates[slide.id] = {
+      desktop: desktopComputed ? "calculated" : "not_calculated",
+      mobile: mobileComputed ? "calculated" : "not_calculated",
+    };
+  }
+  return initialStates;
+}
+
 export default function BannerPage() {
   const { config, filePreviewUrls } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
@@ -286,6 +310,7 @@ export default function BannerPage() {
     setFormState(config);
     setPendingFiles({});
     setLocalPreviewUrls({});
+    setComputationStates(buildComputationStates(config));
   }, [config]);
 
   const isSubmitting =
@@ -311,6 +336,7 @@ export default function BannerPage() {
         setFormState(data.config);
         setPendingFiles({});
         setLocalPreviewUrls({});
+        setComputationStates(buildComputationStates(data.config));
       }
       skipConfigSyncRef.current = true;
       revalidator.revalidate();
@@ -340,32 +366,7 @@ export default function BannerPage() {
 
   const [computationStates, setComputationStates] = useState<
     Record<string, SlideComputationState>
-  >(() => {
-    const adaptiveEnabled = config.brightnessAdaptiveOverlayEnabled;
-    const initialStates: Record<string, SlideComputationState> = {};
-    for (const slide of config.slides) {
-      // parseBannerSlide always returns a number for brightness (fallback 0),
-      // so we cannot distinguish "computed 0" from "fallback 0" at runtime.
-      // When adaptive overlay is enabled, conservatively recompute any slide with
-      // an image and brightness 0. Genuine dark images will still resolve to the
-      // same (0/black/30) result, and the cached value prevents repeated work.
-      const hasDesktopImage = Boolean(slide.desktopImage);
-      const hasMobileImage = Boolean(slide.mobileImage);
-      const desktopBrightness = slide.desktopAverageBrightness ?? 0;
-      const mobileBrightness = slide.mobileAverageBrightness ?? 0;
-
-      const desktopComputed =
-        hasDesktopImage && (!adaptiveEnabled || desktopBrightness !== 0);
-      const mobileComputed =
-        hasMobileImage && (!adaptiveEnabled || mobileBrightness !== 0);
-
-      initialStates[slide.id] = {
-        desktop: desktopComputed ? "calculated" : "not_calculated",
-        mobile: mobileComputed ? "calculated" : "not_calculated",
-      };
-    }
-    return initialStates;
-  });
+  >(() => buildComputationStates(config));
   const activeCalculations = useRef<Set<string>>(new Set());
   const formStateRef = useRef(formState);
   formStateRef.current = formState;
@@ -430,7 +431,14 @@ export default function BannerPage() {
         !formStateRef.current.brightnessAdaptiveOverlayEnabled
       ) {
         // Image was replaced or adaptive overlay was disabled while the calculation
-        // was in flight; do not overwrite the state set by the current computation.
+        // was in flight; reset this device's state so the scheduler will re-evaluate.
+        setComputationStates((current) => ({
+          ...current,
+          [slide.id]: {
+            ...current[slide.id],
+            [device]: "not_calculated",
+          },
+        }));
         return;
       }
 
@@ -1024,12 +1032,10 @@ export default function BannerPage() {
                       <s-text tone="neutral" /* Maps to Polaris tone="subdued" */>
                         Desktop: {(slide.desktopAverageBrightness ?? 0)} / {getToneLabel(slide.desktopAverageBrightness)} / {slide.desktopAdaptiveOverlayVariant === "white" ? "white overlay" : "black overlay"}
                         {" "}({getComputationLabel(computationStates[slide.id]?.desktop ?? "not_calculated")})
-                        {computationStates[slide.id]?.desktop === "failed" ? " — Unable to read image brightness; default overlay applied." : ""}
                       </s-text>
                       <s-text tone="neutral" /* Maps to Polaris tone="subdued" */>
                         Mobile: {(slide.mobileAverageBrightness ?? 0)} / {getToneLabel(slide.mobileAverageBrightness)} / {slide.mobileAdaptiveOverlayVariant === "white" ? "white overlay" : "black overlay"}
                         {" "}({getComputationLabel(computationStates[slide.id]?.mobile ?? "not_calculated")})
-                        {computationStates[slide.id]?.mobile === "failed" ? " — Unable to read image brightness; default overlay applied." : ""}
                         {!slide.mobileImage && slide.desktopImage ? " (copied from desktop)" : ""}
                         {slide.mobileImage && !slide.desktopImage ? " (copied from mobile)" : ""}
                       </s-text>

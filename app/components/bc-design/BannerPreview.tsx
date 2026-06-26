@@ -43,7 +43,12 @@ function isAdaptiveComputed(
   if (!computationStates) return false;
   const state = computationStates[slide.id];
   if (!state) return false;
-  return state.desktop === "calculated" || state.desktop === "failed";
+  return (
+    state.desktop === "calculated" ||
+    state.desktop === "failed" ||
+    state.mobile === "calculated" ||
+    state.mobile === "failed"
+  );
 }
 
 function getSlideClasses(
