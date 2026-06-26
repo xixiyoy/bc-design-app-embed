@@ -10,8 +10,20 @@ export type BannerPreviewConfig = Omit<BannerConfig, "slides"> & {
   slides: BannerSlidePreview[];
 };
 
+type ComputationStatus =
+  | "not_calculated"
+  | "calculating"
+  | "calculated"
+  | "failed";
+
+type SlideComputationState = {
+  desktop: ComputationStatus;
+  mobile: ComputationStatus;
+};
+
 type BannerPreviewProps = {
   config: BannerPreviewConfig;
+  computationStates?: Record<string, SlideComputationState>;
 };
 
 function resolveImageUrl(slide: BannerSlidePreview) {
@@ -24,16 +36,34 @@ function resolveImageUrl(slide: BannerSlidePreview) {
   return undefined;
 }
 
-function getSlideClasses(slide: BannerSlidePreview, enabled: boolean): string {
-  if (!enabled) return "bc-banner-slide is-active";
+function isAdaptiveComputed(
+  slide: BannerSlidePreview,
+  computationStates: Record<string, SlideComputationState> | undefined,
+): boolean {
+  if (!computationStates) return false;
+  const state = computationStates[slide.id];
+  if (!state) return false;
+  return state.desktop === "calculated" || state.desktop === "failed";
+}
+
+function getSlideClasses(
+  slide: BannerSlidePreview,
+  enabled: boolean,
+  computed: boolean,
+): string {
+  if (!enabled || !computed) return "bc-banner-slide is-active";
   const desktopVariant = slide.desktopAdaptiveOverlayVariant ?? "black";
   const mobileVariant = slide.mobileAdaptiveOverlayVariant ?? desktopVariant;
   return `bc-banner-slide is-active bc-banner-slide--adaptive-enabled bc-banner-slide--adaptive-desktop-${desktopVariant} bc-banner-slide--adaptive-mobile-${mobileVariant}`;
 }
 
-function getSlideStyle(slide: BannerSlidePreview, enabled: boolean): React.CSSProperties {
+function getSlideStyle(
+  slide: BannerSlidePreview,
+  enabled: boolean,
+  computed: boolean,
+): React.CSSProperties {
   const base: React.CSSProperties = {};
-  if (!enabled) return base;
+  if (!enabled || !computed) return base;
   const desktopOpacity = ((slide.desktopAdaptiveOverlayOpacity ?? 30) / 100).toString();
   const mobileOpacity = ((slide.mobileAdaptiveOverlayOpacity ?? 30) / 100).toString();
   return {
@@ -42,10 +72,13 @@ function getSlideStyle(slide: BannerSlidePreview, enabled: boolean): React.CSSPr
   } as React.CSSProperties;
 }
 
-export function BannerPreview({ config }: BannerPreviewProps) {
+export function BannerPreview({ config, computationStates }: BannerPreviewProps) {
   const firstSlide = config.slides[0];
   const imageUrl = firstSlide ? resolveImageUrl(firstSlide) : undefined;
   const enabled = config.brightnessAdaptiveOverlayEnabled;
+  const computed = firstSlide
+    ? isAdaptiveComputed(firstSlide, computationStates)
+    : false;
 
   return (
     <div
@@ -61,8 +94,8 @@ export function BannerPreview({ config }: BannerPreviewProps) {
       <div className="bc-banner-carousel__track">
         {firstSlide ? (
           <div
-            className={getSlideClasses(firstSlide, enabled)}
-            style={getSlideStyle(firstSlide, enabled)}
+            className={getSlideClasses(firstSlide, enabled, computed)}
+            style={getSlideStyle(firstSlide, enabled, computed)}
             aria-hidden="false"
           >
             <div className="bc-banner-slide__media">

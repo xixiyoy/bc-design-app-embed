@@ -366,7 +366,6 @@ export default function BannerPage() {
   const computeSlideBrightness = useCallback(
     async (
       slide: BannerSlideConfig,
-      index: number,
       device: "desktop" | "mobile",
       imageUrl: string,
       imageIdentifier: string,
@@ -405,13 +404,8 @@ export default function BannerPage() {
         currentImageId !== imageIdentifier ||
         !formStateRef.current.brightnessAdaptiveOverlayEnabled
       ) {
-        setComputationStates((current) => ({
-          ...current,
-          [slide.id]: {
-            ...current[slide.id],
-            [device]: brightness === null ? "failed" : "calculated",
-          },
-        }));
+        // Image was replaced or adaptive overlay was disabled while the calculation
+        // was in flight; do not overwrite the state set by the current computation.
         return;
       }
 
@@ -514,6 +508,11 @@ export default function BannerPage() {
     });
     // Prevent stale brightness tracking from accumulating for deleted slides.
     delete lastProcessedImages.current[slideId];
+    setComputationStates((current) => {
+      const next = { ...current };
+      delete next[slideId];
+      return next;
+    });
   }, []);
 
   const moveSlide = useCallback((index: number, direction: -1 | 1) => {
@@ -570,24 +569,64 @@ export default function BannerPage() {
     [filePreviewUrls, localPreviewUrls],
   );
 
-  const lastProcessedImages = useRef<Record<string, { desktop?: string; mobile?: string }>>({});
+  const lastProcessedImages = useRef<
+    Record<string, { desktop?: string; mobile?: string }>
+  >({});
   const computationStatesRef = useRef(computationStates);
   computationStatesRef.current = computationStates;
 
+  // Stable identifier map derived from slide images. The scheduler depends on this
+  // instead of the full slides array so text edits do not re-trigger the effect.
+  const imageIdentifiersRef = useRef<
+    Record<string, { desktop?: string; mobile?: string }>
+  >({});
+  const imageIdentifiers = useMemo(() => {
+    const next: Record<string, { desktop?: string; mobile?: string }> = {};
+    for (const slide of formState.slides) {
+      next[slide.id] = {
+        desktop: slide.desktopImage,
+        mobile: slide.mobileImage,
+      };
+    }
+    const prev = imageIdentifiersRef.current;
+    const changed =
+      Object.keys(next).length !== Object.keys(prev).length ||
+      Object.entries(next).some(
+        ([id, images]) =>
+          images.desktop !== prev[id]?.desktop ||
+          images.mobile !== prev[id]?.mobile,
+      );
+    if (changed) {
+      imageIdentifiersRef.current = next;
+    }
+    return imageIdentifiersRef.current;
+  }, [formState.slides]);
+
   // Initialize on mount: mark persisted results as calculated and record current images
   useEffect(() => {
+    const adaptiveEnabled = formState.brightnessAdaptiveOverlayEnabled;
     const initialStates: Record<string, SlideComputationState> = {};
     formState.slides.forEach((slide) => {
-      // Note: parseBannerSlide always returns a number for brightness (fallback 0),
+      // parseBannerSlide always returns a number for brightness (fallback 0),
       // so we cannot distinguish "computed 0" from "fallback 0" at runtime.
-      // A slide with an image and brightness=0 is conservatively treated as calculated.
-      // This is acceptable because the visual result of fallback (0/black/30) is identical
-      // to a genuine dark image, and image replacement still triggers re-computation.
-      const hasDesktopResult = slide.desktopImage && slide.desktopAverageBrightness !== undefined;
-      const hasMobileResult = slide.mobileImage && slide.mobileAverageBrightness !== undefined;
+      // When adaptive overlay is enabled, conservatively recompute any slide with
+      // an image and brightness 0. Genuine dark images will still resolve to the
+      // same (0/black/30) result, and the cached value prevents repeated work.
+      const hasDesktopImage = Boolean(slide.desktopImage);
+      const hasMobileImage = Boolean(slide.mobileImage);
+      const desktopBrightness = slide.desktopAverageBrightness ?? 0;
+      const mobileBrightness = slide.mobileAverageBrightness ?? 0;
+
+      const desktopComputed =
+        hasDesktopImage &&
+        (!adaptiveEnabled || desktopBrightness !== 0);
+      const mobileComputed =
+        hasMobileImage &&
+        (!adaptiveEnabled || mobileBrightness !== 0);
+
       initialStates[slide.id] = {
-        desktop: hasDesktopResult ? "calculated" : "not_calculated",
-        mobile: hasMobileResult ? "calculated" : "not_calculated",
+        desktop: desktopComputed ? "calculated" : "not_calculated",
+        mobile: mobileComputed ? "calculated" : "not_calculated",
       };
     });
     setComputationStates(initialStates);
@@ -609,7 +648,7 @@ export default function BannerPage() {
     const pendingComputations: Array<() => void> = [];
     let hasNewWork = false;
 
-    formState.slides.forEach((slide, index) => {
+    formState.slides.forEach((slide) => {
       const last = lastProcessedImages.current[slide.id] || {};
       const state = computationStatesRef.current[slide.id] || {
         desktop: "not_calculated",
@@ -619,14 +658,22 @@ export default function BannerPage() {
       const desktopImage = slide.desktopImage;
       if (
         desktopImage &&
-        desktopImage !== last.desktop &&
-        state.desktop !== "calculating"
+        state.desktop !== "calculating" &&
+        (desktopImage !== last.desktop || state.desktop === "not_calculated")
       ) {
         hasNewWork = true;
         pendingComputations.push(() => {
-          const previewUrl = resolvePreviewUrl(desktopImage, `${slide.id}.desktopImage`);
+          const previewUrl = resolvePreviewUrl(
+            desktopImage,
+            `${slide.id}.desktopImage`,
+          );
           if (previewUrl) {
-            computeSlideBrightness(slide, index, "desktop", previewUrl, desktopImage);
+            computeSlideBrightness(
+              slide,
+              "desktop",
+              previewUrl,
+              desktopImage,
+            );
           }
         });
       }
@@ -634,14 +681,22 @@ export default function BannerPage() {
       const mobileImage = slide.mobileImage;
       if (
         mobileImage &&
-        mobileImage !== last.mobile &&
-        state.mobile !== "calculating"
+        state.mobile !== "calculating" &&
+        (mobileImage !== last.mobile || state.mobile === "not_calculated")
       ) {
         hasNewWork = true;
         pendingComputations.push(() => {
-          const previewUrl = resolvePreviewUrl(mobileImage, `${slide.id}.mobileImage`);
+          const previewUrl = resolvePreviewUrl(
+            mobileImage,
+            `${slide.id}.mobileImage`,
+          );
           if (previewUrl) {
-            computeSlideBrightness(slide, index, "mobile", previewUrl, mobileImage);
+            computeSlideBrightness(
+              slide,
+              "mobile",
+              previewUrl,
+              mobileImage,
+            );
           }
         });
       }
@@ -657,22 +712,24 @@ export default function BannerPage() {
     });
 
     let taskIndex = 0;
-    const running = new Set<Promise<void>>();
 
     async function runNext() {
       if (taskIndex >= pendingComputations.length) return;
       const fn = pendingComputations[taskIndex++];
-      const promise = Promise.resolve().then(() => fn());
-      running.add(promise);
-      await promise;
-      running.delete(promise);
+      await Promise.resolve().then(() => fn());
       runNext();
     }
 
     for (let i = 0; i < 3 && i < pendingComputations.length; i++) {
       runNext();
     }
-  }, [formState.brightnessAdaptiveOverlayEnabled, formState.slides, computeSlideBrightness, resolvePreviewUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    formState.brightnessAdaptiveOverlayEnabled,
+    imageIdentifiers,
+    computeSlideBrightness,
+    resolvePreviewUrl,
+  ]);
 
   const previewConfig = useMemo<BannerPreviewConfig>(
     () => ({
@@ -919,14 +976,21 @@ export default function BannerPage() {
                       <s-text type="strong">Brightness analysis</s-text>
                       <s-text tone="neutral" /* Maps to Polaris tone="subdued" */>
                         Desktop: {(slide.desktopAverageBrightness ?? 0)} / {getToneLabel(slide.desktopAverageBrightness)} / {slide.desktopAdaptiveOverlayVariant === "white" ? "white overlay" : "black overlay"}
-                        {computationStates[slide.id]?.desktop === "failed" ? " (Unable to read image brightness — default overlay applied)" : ""}
+                        {" "}({getComputationLabel(computationStates[slide.id]?.desktop ?? "not_calculated")})
+                        {computationStates[slide.id]?.desktop === "failed" ? " — Unable to read image brightness; default overlay applied." : ""}
                       </s-text>
                       <s-text tone="neutral" /* Maps to Polaris tone="subdued" */>
                         Mobile: {(slide.mobileAverageBrightness ?? 0)} / {getToneLabel(slide.mobileAverageBrightness)} / {slide.mobileAdaptiveOverlayVariant === "white" ? "white overlay" : "black overlay"}
-                        {computationStates[slide.id]?.mobile === "failed" ? " (Unable to read image brightness — default overlay applied)" : ""}
+                        {" "}({getComputationLabel(computationStates[slide.id]?.mobile ?? "not_calculated")})
+                        {computationStates[slide.id]?.mobile === "failed" ? " — Unable to read image brightness; default overlay applied." : ""}
                         {!slide.mobileImage && slide.desktopImage ? " (copied from desktop)" : ""}
                         {slide.mobileImage && !slide.desktopImage ? " (copied from mobile)" : ""}
                       </s-text>
+                      {!slide.desktopImage && !slide.mobileImage && slide.video ? (
+                        <s-text tone="neutral" /* Maps to Polaris tone="subdued" */>
+                          Video-only slides always use the default black overlay.
+                        </s-text>
+                      ) : null}
                     </s-stack>
                   </s-box>
                 ) : null}
@@ -997,7 +1061,7 @@ export default function BannerPage() {
       </s-section>
 
       <s-section slot="aside" heading="Preview">
-        <BannerPreview config={previewConfig} />
+        <BannerPreview config={previewConfig} computationStates={computationStates} />
       </s-section>
     </s-page>
   );
