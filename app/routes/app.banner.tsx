@@ -657,7 +657,7 @@ export default function BannerPage() {
     // device already has a computed result, copy that triplet into form state.
     formState.slides.forEach((slide, slideIndex) => {
       const last = lastProcessedImages.current[slide.id] || {};
-      const state = computationStatesRef.current[slide.id] || {
+      const state = computationStates[slide.id] || {
         desktop: "not_calculated",
         mobile: "not_calculated",
       };
@@ -702,7 +702,7 @@ export default function BannerPage() {
 
     formState.slides.forEach((slide) => {
       const last = lastProcessedImages.current[slide.id] || {};
-      const state = computationStatesRef.current[slide.id] || {
+      const state = computationStates[slide.id] || {
         desktop: "not_calculated",
         mobile: "not_calculated",
       };
@@ -781,6 +781,7 @@ export default function BannerPage() {
   }, [
     formState.brightnessAdaptiveOverlayEnabled,
     imageIdentifiers,
+    computationStates,
     computeSlideBrightness,
     resolvePreviewUrl,
     updateSlide,
