@@ -32,7 +32,7 @@
 {%- assign slide_classes = 'bc-banner-slide' -%}
 {%- assign slide_style = '' -%}
 
-{%- if brightness_adaptive_overlay_enabled == true -%}
+{%- if brightness_adaptive_overlay_enabled -%}
   {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-enabled' -%}
   {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-desktop-' | append: desktop_variant -%}
   {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-mobile-' | append: mobile_variant -%}
