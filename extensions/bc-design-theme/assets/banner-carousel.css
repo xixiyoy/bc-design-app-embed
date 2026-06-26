@@ -298,11 +298,11 @@
 
 @media screen and (min-width: 750px) {
   .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-black {
-    --bc-overlay-bg: rgba(0, 0, 0, var(--bc-banner-adaptive-desktop-opacity, 0.3));
+    --bc-overlay-bg: rgba(0, 0, 0, var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-desktop-opacity, 0.3)));
   }
 
   .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-white {
-    --bc-overlay-bg: rgba(255, 255, 255, var(--bc-banner-adaptive-desktop-opacity, 0.3));
+    --bc-overlay-bg: rgba(255, 255, 255, var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-desktop-opacity, 0.3)));
     --bc-slide-text-color: var(--bc-banner-adaptive-dark-text-color, #121212);
     --bc-button-bg: var(--bc-banner-adaptive-dark-button-background, #121212);
     --bc-button-text: var(--bc-banner-adaptive-dark-button-text, #ffffff);
@@ -311,11 +311,11 @@
 
 @media screen and (max-width: 749px) {
   .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-black {
-    --bc-overlay-bg: rgba(0, 0, 0, var(--bc-banner-adaptive-mobile-opacity, 0.3));
+    --bc-overlay-bg: rgba(0, 0, 0, var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-mobile-opacity, 0.3)));
   }
 
   .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-white {
-    --bc-overlay-bg: rgba(255, 255, 255, var(--bc-banner-adaptive-mobile-opacity, 0.3));
+    --bc-overlay-bg: rgba(255, 255, 255, var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-mobile-opacity, 0.3)));
     --bc-slide-text-color: var(--bc-banner-adaptive-dark-text-color, #121212);
     --bc-button-bg: var(--bc-banner-adaptive-dark-button-background, #121212);
     --bc-button-text: var(--bc-banner-adaptive-dark-button-text, #ffffff);
