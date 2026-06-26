@@ -431,7 +431,16 @@ export default function BannerPage() {
         !formStateRef.current.brightnessAdaptiveOverlayEnabled
       ) {
         // Image was replaced or adaptive overlay was disabled while the calculation
-        // was in flight; reset this device's state so the scheduler will re-evaluate.
+        // was in flight. If a newer computation for the current image is already
+        // running, leave its state alone so the UI stays on "calculating...".
+        if (
+          activeCalculations.current.has(
+            `${slide.id}-${device}-${currentImageId}`,
+          )
+        ) {
+          return;
+        }
+
         setComputationStates((current) => ({
           ...current,
           [slide.id]: {
@@ -709,8 +718,7 @@ export default function BannerPage() {
         hasDesktop &&
         !hasMobile &&
         slide.desktopImage === last.desktop &&
-        state.desktop === "calculated" &&
-        state.mobile !== "calculated"
+        state.desktop === "calculated"
       ) {
         updateSlide(slideIndex, {
           mobileAverageBrightness: slide.desktopAverageBrightness,
@@ -721,12 +729,15 @@ export default function BannerPage() {
           ...current,
           [slide.id]: { ...current[slide.id], mobile: "calculated" },
         }));
+        lastProcessedImages.current[slide.id] = {
+          ...last,
+          mobile: undefined,
+        };
       } else if (
         !hasDesktop &&
         hasMobile &&
         slide.mobileImage === last.mobile &&
-        state.mobile === "calculated" &&
-        state.desktop !== "calculated"
+        state.mobile === "calculated"
       ) {
         updateSlide(slideIndex, {
           desktopAverageBrightness: slide.mobileAverageBrightness,
@@ -737,6 +748,10 @@ export default function BannerPage() {
           ...current,
           [slide.id]: { ...current[slide.id], desktop: "calculated" },
         }));
+        lastProcessedImages.current[slide.id] = {
+          ...last,
+          desktop: undefined,
+        };
       }
     });
 
