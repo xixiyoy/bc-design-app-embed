@@ -358,6 +358,12 @@ function parseBannerSlide(node: ChildMetaobjectNode): BannerSlideConfig {
     primaryButtonLink: textValue(fields.get("primary_button_link")),
     secondaryButtonLabel: textValue(fields.get("secondary_button_label")),
     secondaryButtonLink: textValue(fields.get("secondary_button_link")),
+    desktopAverageBrightness: numberValue(fields.get("desktop_average_brightness"), 0),
+    desktopAdaptiveOverlayVariant: textValue(fields.get("desktop_adaptive_overlay_variant"), "black"),
+    desktopAdaptiveOverlayOpacity: numberValue(fields.get("desktop_adaptive_overlay_opacity"), 30),
+    mobileAverageBrightness: numberValue(fields.get("mobile_average_brightness"), 0),
+    mobileAdaptiveOverlayVariant: textValue(fields.get("mobile_adaptive_overlay_variant"), "black"),
+    mobileAdaptiveOverlayOpacity: numberValue(fields.get("mobile_adaptive_overlay_opacity"), 30),
   };
 }
 
@@ -529,8 +535,40 @@ function buildSecondLevelFields(config: NavigationSecondLevelConfig) {
 }
 
 function buildBannerSlideFields(slide: BannerSlideConfig, index: number) {
-  const title =
-    slide.title.trim() || slide.heading.trim() || `Slide ${index + 1}`;
+  const title = slide.title.trim() || slide.heading.trim() || `Slide ${index + 1}`;
+
+  // Save-time normalization
+  const hasDesktop = Boolean(slide.desktopImage);
+  const hasMobile = Boolean(slide.mobileImage);
+
+  let desktopBrightness = Math.min(255, Math.max(0, slide.desktopAverageBrightness ?? 0));
+  let desktopVariant = slide.desktopAdaptiveOverlayVariant ?? "black";
+  let desktopOpacity = clampBannerNumber("desktopAdaptiveOverlayOpacity", slide.desktopAdaptiveOverlayOpacity ?? 30);
+
+  let mobileBrightness = Math.min(255, Math.max(0, slide.mobileAverageBrightness ?? 0));
+  let mobileVariant = slide.mobileAdaptiveOverlayVariant ?? "black";
+  let mobileOpacity = clampBannerNumber("mobileAdaptiveOverlayOpacity", slide.mobileAdaptiveOverlayOpacity ?? 30);
+
+  if (!hasMobile && hasDesktop) {
+    mobileBrightness = desktopBrightness;
+    mobileVariant = desktopVariant;
+    mobileOpacity = desktopOpacity;
+  } else if (!hasDesktop && hasMobile) {
+    desktopBrightness = mobileBrightness;
+    desktopVariant = mobileVariant;
+    desktopOpacity = mobileOpacity;
+  } else if (!hasDesktop && !hasMobile) {
+    desktopBrightness = 0;
+    desktopVariant = "black";
+    desktopOpacity = 30;
+    mobileBrightness = 0;
+    mobileVariant = "black";
+    mobileOpacity = 30;
+  }
+
+  if (desktopVariant !== "black" && desktopVariant !== "white") desktopVariant = "black";
+  if (mobileVariant !== "black" && mobileVariant !== "white") mobileVariant = "black";
+
   return [
     { key: "title", value: title },
     optionalField("desktop_image", slide.desktopImage),
@@ -543,6 +581,12 @@ function buildBannerSlideFields(slide: BannerSlideConfig, index: number) {
     { key: "primary_button_link", value: slide.primaryButtonLink },
     { key: "secondary_button_label", value: slide.secondaryButtonLabel },
     { key: "secondary_button_link", value: slide.secondaryButtonLink },
+    { key: "desktop_average_brightness", value: String(desktopBrightness) },
+    { key: "desktop_adaptive_overlay_variant", value: desktopVariant },
+    { key: "desktop_adaptive_overlay_opacity", value: String(desktopOpacity) },
+    { key: "mobile_average_brightness", value: String(mobileBrightness) },
+    { key: "mobile_adaptive_overlay_variant", value: mobileVariant },
+    { key: "mobile_adaptive_overlay_opacity", value: String(mobileOpacity) },
   ].filter((field): field is { key: string; value: string } => field != null);
 }
 
