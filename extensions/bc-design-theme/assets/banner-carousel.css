@@ -219,32 +219,6 @@
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 
-@media screen and (min-width: 750px) {
-  .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-black {
-    --bc-overlay-bg: rgba(0, 0, 0, var(--bc-banner-adaptive-desktop-opacity, 0.3));
-  }
-
-  .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-white {
-    --bc-overlay-bg: rgba(255, 255, 255, var(--bc-banner-adaptive-desktop-opacity, 0.3));
-    --bc-slide-text-color: var(--bc-banner-adaptive-dark-text-color, #121212);
-    --bc-button-bg: var(--bc-banner-adaptive-dark-button-background, #121212);
-    --bc-button-text: var(--bc-banner-adaptive-dark-button-text, #ffffff);
-  }
-}
-
-@media screen and (max-width: 749px) {
-  .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-black {
-    --bc-overlay-bg: rgba(0, 0, 0, var(--bc-banner-adaptive-mobile-opacity, 0.3));
-  }
-
-  .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-white {
-    --bc-overlay-bg: rgba(255, 255, 255, var(--bc-banner-adaptive-mobile-opacity, 0.3));
-    --bc-slide-text-color: var(--bc-banner-adaptive-dark-text-color, #121212);
-    --bc-button-bg: var(--bc-banner-adaptive-dark-button-background, #121212);
-    --bc-button-text: var(--bc-banner-adaptive-dark-button-text, #ffffff);
-  }
-}
-
 @media (max-width: 989px) {
   .bc-banner-slide__content {
     width: min(70vw, 620px);
@@ -319,6 +293,32 @@
 
   .bc-banner-slide__button--secondary {
     border-width: 1px;
+  }
+}
+
+@media screen and (min-width: 750px) {
+  .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-black {
+    --bc-overlay-bg: rgba(0, 0, 0, var(--bc-banner-adaptive-desktop-opacity, 0.3));
+  }
+
+  .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-white {
+    --bc-overlay-bg: rgba(255, 255, 255, var(--bc-banner-adaptive-desktop-opacity, 0.3));
+    --bc-slide-text-color: var(--bc-banner-adaptive-dark-text-color, #121212);
+    --bc-button-bg: var(--bc-banner-adaptive-dark-button-background, #121212);
+    --bc-button-text: var(--bc-banner-adaptive-dark-button-text, #ffffff);
+  }
+}
+
+@media screen and (max-width: 749px) {
+  .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-black {
+    --bc-overlay-bg: rgba(0, 0, 0, var(--bc-banner-adaptive-mobile-opacity, 0.3));
+  }
+
+  .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-white {
+    --bc-overlay-bg: rgba(255, 255, 255, var(--bc-banner-adaptive-mobile-opacity, 0.3));
+    --bc-slide-text-color: var(--bc-banner-adaptive-dark-text-color, #121212);
+    --bc-button-bg: var(--bc-banner-adaptive-dark-button-background, #121212);
+    --bc-button-text: var(--bc-banner-adaptive-dark-button-text, #ffffff);
   }
 }
 
