@@ -387,14 +387,21 @@ export default function BannerPage() {
 
       activeCalculations.current.delete(key);
 
+      // Resolve the current index after the async boundary so reorders do not corrupt
+      // the wrong slide's brightness fields.
+      const currentIndex = formStateRef.current.slides.findIndex(
+        (s) => s.id === slide.id,
+      );
+      if (currentIndex === -1) {
+        // Slide was removed while the calculation was in flight; nothing to update.
+        return;
+      }
+
       // Verify slide still exists with same image using ref (avoids stale closure)
-      const currentSlide = formStateRef.current.slides.find((s) => s.id === slide.id);
+      const currentSlide = formStateRef.current.slides[currentIndex];
       const currentImageId =
-        device === "desktop"
-          ? currentSlide?.desktopImage
-          : currentSlide?.mobileImage;
+        device === "desktop" ? currentSlide.desktopImage : currentSlide.mobileImage;
       if (
-        !currentSlide ||
         currentImageId !== imageIdentifier ||
         !formStateRef.current.brightnessAdaptiveOverlayEnabled
       ) {
@@ -409,7 +416,7 @@ export default function BannerPage() {
       }
 
       if (brightness === null) {
-        updateSlide(index, {
+        updateSlide(currentIndex, {
           [`${device}AverageBrightness`]: 0,
           [`${device}AdaptiveOverlayVariant`]: "black",
           [`${device}AdaptiveOverlayOpacity`]: ADAPTIVE_OVERLAY_OPACITY,
@@ -425,7 +432,7 @@ export default function BannerPage() {
       }
 
       const variant = brightness < BRIGHTNESS_THRESHOLD ? "black" : "white";
-      updateSlide(index, {
+      updateSlide(currentIndex, {
         [`${device}AverageBrightness`]: brightness,
         [`${device}AdaptiveOverlayVariant`]: variant,
         [`${device}AdaptiveOverlayOpacity`]: ADAPTIVE_OVERLAY_OPACITY,
@@ -445,7 +452,7 @@ export default function BannerPage() {
         !currentSlide.mobileImage &&
         currentSlide.desktopImage
       ) {
-        updateSlide(index, {
+        updateSlide(currentIndex, {
           mobileAverageBrightness: brightness,
           mobileAdaptiveOverlayVariant: variant,
           mobileAdaptiveOverlayOpacity: ADAPTIVE_OVERLAY_OPACITY,
@@ -459,7 +466,7 @@ export default function BannerPage() {
         !currentSlide.desktopImage &&
         currentSlide.mobileImage
       ) {
-        updateSlide(index, {
+        updateSlide(currentIndex, {
           desktopAverageBrightness: brightness,
           desktopAdaptiveOverlayVariant: variant,
           desktopAdaptiveOverlayOpacity: ADAPTIVE_OVERLAY_OPACITY,
@@ -505,6 +512,8 @@ export default function BannerPage() {
       }
       return next;
     });
+    // Prevent stale brightness tracking from accumulating for deleted slides.
+    delete lastProcessedImages.current[slideId];
   }, []);
 
   const moveSlide = useCallback((index: number, direction: -1 | 1) => {
@@ -780,7 +789,7 @@ export default function BannerPage() {
 
           <s-box padding="base" borderWidth="base" borderRadius="base">
             <s-stack direction="block" gap="small">
-              <s-text tone="neutral">Adaptive overlay</s-text>
+              <s-text tone="neutral" /* Maps to Polaris tone="subdued" */>Adaptive overlay</s-text>
               <s-switch
                 label="Brightness adaptive overlay"
                 checked={formState.brightnessAdaptiveOverlayEnabled}
@@ -790,7 +799,7 @@ export default function BannerPage() {
                   })
                 }
               />
-              <s-text tone="neutral">
+              <s-text tone="neutral" /* Maps to Polaris tone="subdued" */>
                 Turn on automatic image brightness analysis for all banner slides.
                 Dark images use a black overlay.
                 Light images use a white overlay with dark text.
@@ -908,11 +917,11 @@ export default function BannerPage() {
                   <s-box padding="base" borderWidth="base" borderRadius="base" background="subdued">
                     <s-stack direction="block" gap="small">
                       <s-text type="strong">Brightness analysis</s-text>
-                      <s-text tone="neutral">
+                      <s-text tone="neutral" /* Maps to Polaris tone="subdued" */>
                         Desktop: {(slide.desktopAverageBrightness ?? 0)} / {getToneLabel(slide.desktopAverageBrightness)} / {slide.desktopAdaptiveOverlayVariant === "white" ? "white overlay" : "black overlay"}
                         {computationStates[slide.id]?.desktop === "failed" ? " (Unable to read image brightness — default overlay applied)" : ""}
                       </s-text>
-                      <s-text tone="neutral">
+                      <s-text tone="neutral" /* Maps to Polaris tone="subdued" */>
                         Mobile: {(slide.mobileAverageBrightness ?? 0)} / {getToneLabel(slide.mobileAverageBrightness)} / {slide.mobileAdaptiveOverlayVariant === "white" ? "white overlay" : "black overlay"}
                         {computationStates[slide.id]?.mobile === "failed" ? " (Unable to read image brightness — default overlay applied)" : ""}
                         {!slide.mobileImage && slide.desktopImage ? " (copied from desktop)" : ""}
