@@ -152,6 +152,10 @@ type = "number_integer"
 name = "Overlay opacity"
 type = "number_integer"
 
+[metaobjects.app.banner_config.fields.brightness_adaptive_overlay_enabled]
+name = "Brightness adaptive overlay"
+type = "boolean"
+
 [metaobjects.app.banner_config.fields.slides]
 name = "Slides"
 type = "list.metaobject_reference<$app:banner_slide>"
@@ -207,6 +211,30 @@ type = "single_line_text_field"
 [metaobjects.app.banner_slide.fields.secondary_button_link]
 name = "Secondary button link"
 type = "url"
+
+[metaobjects.app.banner_slide.fields.desktop_average_brightness]
+name = "Desktop average brightness"
+type = "number_integer"
+
+[metaobjects.app.banner_slide.fields.desktop_adaptive_overlay_variant]
+name = "Desktop adaptive overlay variant"
+type = "single_line_text_field"
+
+[metaobjects.app.banner_slide.fields.desktop_adaptive_overlay_opacity]
+name = "Desktop adaptive overlay opacity"
+type = "number_integer"
+
+[metaobjects.app.banner_slide.fields.mobile_average_brightness]
+name = "Mobile average brightness"
+type = "number_integer"
+
+[metaobjects.app.banner_slide.fields.mobile_adaptive_overlay_variant]
+name = "Mobile adaptive overlay variant"
+type = "single_line_text_field"
+
+[metaobjects.app.banner_slide.fields.mobile_adaptive_overlay_opacity]
+name = "Mobile adaptive overlay opacity"
+type = "number_integer"
 
 [webhooks]
 api_version = "2026-07"

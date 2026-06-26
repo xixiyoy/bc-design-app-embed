@@ -32,8 +32,9 @@ describe("bc design config helpers", () => {
       autoplaySpeed: 5,
       pauseOnHover: true,
       showIndicators: true,
-      mobileHeight: 500,
+      mobileHeight: 560,
       overlayOpacity: 20,
+      brightnessAdaptiveOverlayEnabled: false,
       slides: [],
     });
   });
@@ -43,5 +44,8 @@ describe("bc design config helpers", () => {
     expect(clampBannerNumber("autoplaySpeed", 11)).toBe(10);
     expect(clampBannerNumber("overlayOpacity", 63)).toBe(60);
     expect(clampBannerNumber("mobileHeight", 120)).toBe(360);
+    expect(clampBannerNumber("desktopAdaptiveOverlayOpacity", 80)).toBe(60);
+    expect(clampBannerNumber("desktopAdaptiveOverlayOpacity", -5)).toBe(0);
+    expect(clampBannerNumber("mobileAdaptiveOverlayOpacity", 45)).toBe(45);
   });
 });

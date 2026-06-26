@@ -175,6 +175,10 @@ function parseBannerConfigPayload(
       "overlayOpacity",
       Number(parsed.overlayOpacity ?? BANNER_DEFAULTS.overlayOpacity),
     ),
+    brightnessAdaptiveOverlayEnabled: Boolean(
+      parsed.brightnessAdaptiveOverlayEnabled ??
+        BANNER_DEFAULTS.brightnessAdaptiveOverlayEnabled,
+    ),
     slides: (parsed.slides ?? []).map((slide) =>
       parseBannerSlidePayload(slide, previousIds),
     ),

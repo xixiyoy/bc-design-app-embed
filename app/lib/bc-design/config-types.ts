@@ -51,6 +51,12 @@ export type BannerSlideConfig = {
   primaryButtonLink: string;
   secondaryButtonLabel: string;
   secondaryButtonLink: string;
+  desktopAverageBrightness?: number;
+  desktopAdaptiveOverlayVariant?: string;
+  desktopAdaptiveOverlayOpacity?: number;
+  mobileAverageBrightness?: number;
+  mobileAdaptiveOverlayVariant?: string;
+  mobileAdaptiveOverlayOpacity?: number;
 };
 
 export type BannerConfig = {
@@ -60,6 +66,7 @@ export type BannerConfig = {
   showIndicators: boolean;
   mobileHeight: number;
   overlayOpacity: number;
+  brightnessAdaptiveOverlayEnabled: boolean;
   slides: BannerSlideConfig[];
 };
 
@@ -80,8 +87,9 @@ export const BANNER_DEFAULTS: BannerConfig = {
   autoplaySpeed: 5,
   pauseOnHover: true,
   showIndicators: true,
-  mobileHeight: 500,
+  mobileHeight: 560,
   overlayOpacity: 20,
+  brightnessAdaptiveOverlayEnabled: false,
   slides: [],
 };
 
@@ -134,11 +142,21 @@ export function sanitizeNavigationSecondLevelConfig(
 }
 
 export function clampBannerNumber(
-  field: "autoplaySpeed" | "overlayOpacity" | "mobileHeight",
+  field:
+    | "autoplaySpeed"
+    | "overlayOpacity"
+    | "mobileHeight"
+    | "desktopAdaptiveOverlayOpacity"
+    | "mobileAdaptiveOverlayOpacity",
   value: number,
 ) {
   if (field === "autoplaySpeed") return Math.min(10, Math.max(3, value));
-  if (field === "overlayOpacity") return Math.min(60, Math.max(0, value));
+  if (
+    field === "overlayOpacity" ||
+    field === "desktopAdaptiveOverlayOpacity" ||
+    field === "mobileAdaptiveOverlayOpacity"
+  )
+    return Math.min(60, Math.max(0, value));
   return Math.min(760, Math.max(360, value));
 }
 

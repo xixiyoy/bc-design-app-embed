@@ -490,6 +490,10 @@ export async function loadBannerConfig(
       fields.get("overlay_opacity"),
       BANNER_DEFAULTS.overlayOpacity,
     ),
+    brightnessAdaptiveOverlayEnabled: booleanValue(
+      fields.get("brightness_adaptive_overlay_enabled"),
+      BANNER_DEFAULTS.brightnessAdaptiveOverlayEnabled,
+    ),
     slides: childNodes.map(parseBannerSlide),
   };
 }
@@ -655,6 +659,10 @@ export async function saveBannerConfig(
     { key: "show_indicators", value: String(clampedConfig.showIndicators) },
     { key: "mobile_height", value: String(clampedConfig.mobileHeight) },
     { key: "overlay_opacity", value: String(clampedConfig.overlayOpacity) },
+    {
+      key: "brightness_adaptive_overlay_enabled",
+      value: String(clampedConfig.brightnessAdaptiveOverlayEnabled),
+    },
     { key: "slides", value: JSON.stringify(childGids) },
   ]);
 
