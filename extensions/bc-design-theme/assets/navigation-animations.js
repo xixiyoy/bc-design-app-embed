@@ -184,7 +184,7 @@
         if (!img) return;
 
         card.setAttribute('data-product-card-hover-init', 'true');
-        gsap.set(img, { scale: 1, transformOrigin: 'left center' });
+        gsap.set(img, { scale: 1, transformOrigin: 'center center' });
 
         var hoverTween = gsap.to(img, {
           scale: PRODUCT_CARD_IMAGE_HOVER_SCALE,

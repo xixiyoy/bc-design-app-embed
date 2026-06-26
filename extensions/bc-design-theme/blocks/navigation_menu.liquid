@@ -412,6 +412,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateNavScrollButtons() {
     if (!navMenu || !navPrevBtn || !navNextBtn || !navControls) return;
 
+    var navScrollWrap = root.querySelector('.nav-scroll-wrap');
     var isMobile = isMobileViewport();
     if (isMobile) {
       navControls.classList.add('nav-hidden');
@@ -419,6 +420,9 @@ document.addEventListener('DOMContentLoaded', function () {
       navMenu.scrollLeft = 0;
       setNavScrollButtonState(navPrevBtn, false);
       setNavScrollButtonState(navNextBtn, false);
+      if (navScrollWrap) {
+        navScrollWrap.classList.remove('is-faded-left', 'is-faded-right');
+      }
       return;
     }
 
@@ -430,6 +434,9 @@ document.addEventListener('DOMContentLoaded', function () {
       navMenu.scrollLeft = 0;
       setNavScrollButtonState(navPrevBtn, false);
       setNavScrollButtonState(navNextBtn, false);
+      if (navScrollWrap) {
+        navScrollWrap.classList.remove('is-faded-left', 'is-faded-right');
+      }
       return;
     }
 
@@ -439,6 +446,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     setNavScrollButtonState(navPrevBtn, canScrollLeft);
     setNavScrollButtonState(navNextBtn, canScrollRight);
+
+    if (navScrollWrap) {
+      navScrollWrap.classList.add('is-faded-left', 'is-faded-right');
+    }
   }
 
   function getNavScrollStep() {

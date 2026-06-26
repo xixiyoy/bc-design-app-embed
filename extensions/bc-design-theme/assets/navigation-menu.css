@@ -170,10 +170,39 @@
     overflow-y: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    position: relative;
   }
 
   .phaetus-nav-root .nav-menu::-webkit-scrollbar {
     display: none;
+  }
+
+  .phaetus-nav-root .nav-menu::before,
+  .phaetus-nav-root .nav-menu::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 48px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .phaetus-nav-root .nav-menu::before {
+    left: 0;
+    background: linear-gradient(to right, var(--phaetus-nav-background-color), transparent);
+  }
+
+  .phaetus-nav-root .nav-menu::after {
+    right: 0;
+    background: linear-gradient(to left, var(--phaetus-nav-background-color), transparent);
+  }
+
+  .phaetus-nav-root .nav-scroll-wrap.is-faded-left .nav-menu::before,
+  .phaetus-nav-root .nav-scroll-wrap.is-faded-right .nav-menu::after {
+    opacity: 1;
   }
 
   /* Overflow: center would shift items left under the logo; align to start for scroll */
