@@ -6,12 +6,48 @@
     heading, subheading
     primary_button_label, primary_button_link
     secondary_button_label, secondary_button_link
-    overlay_opacity, eager_load
+    brightness_adaptive_overlay_enabled
+    desktop_adaptive_overlay_variant, desktop_adaptive_overlay_opacity
+    mobile_adaptive_overlay_variant, mobile_adaptive_overlay_opacity
+    eager_load
 {% endcomment %}
 
+{%- assign desktop_variant = desktop_adaptive_overlay_variant | default: 'black' -%}
+{%- assign mobile_variant = mobile_adaptive_overlay_variant | default: desktop_variant -%}
+
+{%- unless desktop_variant == 'black' or desktop_variant == 'white' -%}
+  {%- assign desktop_variant = 'black' -%}
+{%- endunless -%}
+
+{%- unless mobile_variant == 'black' or mobile_variant == 'white' -%}
+  {%- assign mobile_variant = desktop_variant -%}
+{%- endunless -%}
+
+{%- assign desktop_opacity_percent = desktop_adaptive_overlay_opacity | default: 30 | plus: 0 -%}
+{%- assign mobile_opacity_percent = mobile_adaptive_overlay_opacity | default: desktop_opacity_percent | plus: 0 -%}
+
+{%- assign desktop_opacity = desktop_opacity_percent | divided_by: 100.0 -%}
+{%- assign mobile_opacity = mobile_opacity_percent | divided_by: 100.0 -%}
+
+{%- assign slide_classes = 'bc-banner-slide' -%}
+{%- assign slide_style = '' -%}
+
+{%- if brightness_adaptive_overlay_enabled == true -%}
+  {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-enabled' -%}
+  {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-desktop-' | append: desktop_variant -%}
+  {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-mobile-' | append: mobile_variant -%}
+  {%- capture slide_style -%}
+    --bc-banner-adaptive-desktop-opacity: {{ desktop_opacity }};
+    --bc-banner-adaptive-mobile-opacity: {{ mobile_opacity }};
+  {%- endcapture -%}
+{%- endif -%}
+
 <div
-  class="bc-banner-slide"
+  class="{{ slide_classes }}"
   aria-hidden="true"
+  {% if slide_style != blank %}
+    style="{{ slide_style | strip }}"
+  {% endif %}
   {{ shopify_attributes }}
 >
   <div class="bc-banner-slide__media">

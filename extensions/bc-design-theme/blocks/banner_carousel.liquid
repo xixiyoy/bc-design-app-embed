@@ -26,7 +26,7 @@
   {% else %}
     <banner-carousel
       class="bc-banner-carousel"
-      style="--bc-banner-aspect-ratio: 2.4 / 1; --bc-banner-mobile-height: {{ banner_config.mobile_height.value | default: 500 }}px; --bc-banner-overlay-opacity: {{ banner_config.overlay_opacity.value | default: 20 | divided_by: 100.0 }};"
+      style="--bc-banner-aspect-ratio: 2.4 / 1; --bc-banner-mobile-height: {{ banner_config.mobile_height.value | default: 560 }}px; --bc-banner-overlay-opacity: {{ banner_config.overlay_opacity.value | default: 20 | divided_by: 100.0 }};"
       data-autoplay="{{ banner_config.autoplay.value }}"
       data-autoplay-speed="{{ banner_config.autoplay_speed.value | default: 5 | times: 1000 }}"
       data-pause-on-hover="{{ banner_config.pause_on_hover.value }}"
@@ -35,6 +35,7 @@
       {{ block.shopify_attributes }}
     >
       <div class="bc-banner-carousel__track">
+        {% assign brightness_adaptive_overlay_enabled = banner_config.brightness_adaptive_overlay_enabled.value | default: false %}
         {% for slide in banner_config.slides.value %}
           {% render 'banner_carousel_slide',
             desktop_image: slide.desktop_image.value,
@@ -47,6 +48,11 @@
             primary_button_link: slide.primary_button_link.value,
             secondary_button_label: slide.secondary_button_label.value,
             secondary_button_link: slide.secondary_button_link.value,
+            brightness_adaptive_overlay_enabled: brightness_adaptive_overlay_enabled,
+            desktop_adaptive_overlay_variant: slide.desktop_adaptive_overlay_variant.value,
+            desktop_adaptive_overlay_opacity: slide.desktop_adaptive_overlay_opacity.value,
+            mobile_adaptive_overlay_variant: slide.mobile_adaptive_overlay_variant.value,
+            mobile_adaptive_overlay_opacity: slide.mobile_adaptive_overlay_opacity.value,
             eager_load: 'lazy'
           %}
         {% endfor %}
