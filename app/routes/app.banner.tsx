@@ -605,8 +605,7 @@ export default function BannerPage() {
   const lastProcessedImages = useRef<
     Record<string, { desktop?: string; mobile?: string }>
   >({});
-  const computationStatesRef = useRef(computationStates);
-  computationStatesRef.current = computationStates;
+  const wasAdaptiveEnabledRef = useRef(formState.brightnessAdaptiveOverlayEnabled);
 
   // Stable identifier map derived from slide images. The scheduler depends on this
   // instead of the full slides array so text edits do not re-trigger the effect.
@@ -644,6 +643,47 @@ export default function BannerPage() {
       };
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When the adaptive overlay feature is toggled on, any slide that still has
+  // the fallback brightness of 0 must be recomputed rather than treated as
+  // already calculated.
+  useEffect(() => {
+    const wasEnabled = wasAdaptiveEnabledRef.current;
+    const isEnabled = formState.brightnessAdaptiveOverlayEnabled;
+    wasAdaptiveEnabledRef.current = isEnabled;
+
+    if (!wasEnabled && isEnabled) {
+      setComputationStates((current) => {
+        const next = { ...current };
+        formStateRef.current.slides.forEach((slide) => {
+          const resetIfNeeded = (
+            device: "desktop" | "mobile",
+            image: string | undefined,
+            brightness: number | undefined,
+          ) => {
+            if (image && (brightness ?? 0) === 0) {
+              next[slide.id] = {
+                ...next[slide.id],
+                [device]: "not_calculated",
+              };
+            }
+          };
+
+          resetIfNeeded(
+            "desktop",
+            slide.desktopImage,
+            slide.desktopAverageBrightness,
+          );
+          resetIfNeeded(
+            "mobile",
+            slide.mobileImage,
+            slide.mobileAverageBrightness,
+          );
+        });
+        return next;
+      });
+    }
+  }, [formState.brightnessAdaptiveOverlayEnabled]);
 
   useEffect(() => {
     if (!formState.brightnessAdaptiveOverlayEnabled) {

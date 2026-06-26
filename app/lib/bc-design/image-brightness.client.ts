@@ -5,14 +5,24 @@
  */
 
 function appendCorsIsolationParam(url: string): string {
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}brightness-compute=1`;
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("brightness-compute", "1");
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 function appendThumbnailParam(url: string): string {
   if (url.includes("cdn.shopify.com") || url.includes("shopifycdn")) {
-    const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}width=100`;
+    try {
+      const parsed = new URL(url);
+      parsed.searchParams.set("width", "100");
+      return parsed.toString();
+    } catch {
+      return url;
+    }
   }
   return url;
 }

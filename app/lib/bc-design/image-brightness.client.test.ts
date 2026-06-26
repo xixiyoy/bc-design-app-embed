@@ -81,6 +81,31 @@ describe("calculateImageBrightness", () => {
     expect(capturedSrc).not.toContain("timestamp");
   });
 
+  it("computes brightness from canvas image data", async () => {
+    const imageData = new Uint8ClampedArray([
+      255, 255, 255, 255, // white
+      0, 0, 0, 255, // black
+      255, 0, 0, 255, // red
+      0, 255, 0, 255, // green
+    ]);
+
+    globalThis.document = {
+      createElement: () => ({
+        getContext: () => ({
+          drawImage: () => {},
+          getImageData: () => ({ data: imageData }),
+        }),
+      }),
+    } as unknown as Document;
+
+    const result = await calculateImageBrightness(
+      "https://cdn.shopify.com/image.jpg?v=123",
+    );
+
+    // (255 + 0 + 0.299*255 + 0.587*255) / 4 = ~120
+    expect(result).toBe(120);
+  });
+
   it("appends width=100 for Shopify CDN URLs and omits it for non-Shopify URLs", async () => {
     const capturedSrcs: string[] = [];
 
