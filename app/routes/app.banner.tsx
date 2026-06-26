@@ -29,6 +29,17 @@ import {
   saveBannerConfig,
 } from "../lib/bc-design/metaobjects.server";
 import { authenticate } from "../shopify.server";
+import { calculateImageBrightness } from "../lib/bc-design/image-brightness.client";
+
+const BRIGHTNESS_THRESHOLD = 128;
+const ADAPTIVE_OVERLAY_OPACITY = 30;
+
+type ComputationStatus = "not_calculated" | "calculating" | "calculated" | "failed";
+
+type SlideComputationState = {
+  desktop: ComputationStatus;
+  mobile: ComputationStatus;
+};
 
 type FileNodesData = {
   nodes: Array<
@@ -149,6 +160,18 @@ function parseBannerSlidePayload(
     primaryButtonLink: slide.primaryButtonLink ?? "",
     secondaryButtonLabel: slide.secondaryButtonLabel ?? "",
     secondaryButtonLink: slide.secondaryButtonLink ?? "",
+    desktopAverageBrightness: Number(slide.desktopAverageBrightness ?? 0),
+    desktopAdaptiveOverlayVariant: slide.desktopAdaptiveOverlayVariant ?? "black",
+    desktopAdaptiveOverlayOpacity: clampBannerNumber(
+      "desktopAdaptiveOverlayOpacity",
+      Number(slide.desktopAdaptiveOverlayOpacity ?? 30),
+    ),
+    mobileAverageBrightness: Number(slide.mobileAverageBrightness ?? 0),
+    mobileAdaptiveOverlayVariant: slide.mobileAdaptiveOverlayVariant ?? "black",
+    mobileAdaptiveOverlayOpacity: clampBannerNumber(
+      "mobileAdaptiveOverlayOpacity",
+      Number(slide.mobileAdaptiveOverlayOpacity ?? 30),
+    ),
   };
 }
 
@@ -176,8 +199,7 @@ function parseBannerConfigPayload(
       Number(parsed.overlayOpacity ?? BANNER_DEFAULTS.overlayOpacity),
     ),
     brightnessAdaptiveOverlayEnabled: Boolean(
-      parsed.brightnessAdaptiveOverlayEnabled ??
-        BANNER_DEFAULTS.brightnessAdaptiveOverlayEnabled,
+      parsed.brightnessAdaptiveOverlayEnabled,
     ),
     slides: (parsed.slides ?? []).map((slide) =>
       parseBannerSlidePayload(slide, previousIds),
@@ -316,6 +338,141 @@ export default function BannerPage() {
     [],
   );
 
+  const [computationStates, setComputationStates] = useState<
+    Record<string, SlideComputationState>
+  >({});
+  const activeCalculations = useRef<Set<string>>(new Set());
+  const formStateRef = useRef(formState);
+  formStateRef.current = formState;
+
+  const getComputationLabel = (state: ComputationStatus) => {
+    switch (state) {
+      case "not_calculated":
+        return "not calculated";
+      case "calculating":
+        return "calculating...";
+      case "calculated":
+        return "calculated";
+      case "failed":
+        return "failed (default overlay)";
+    }
+  };
+
+  const getToneLabel = (brightness: number | undefined) => {
+    if (brightness === undefined) return "";
+    return brightness < BRIGHTNESS_THRESHOLD ? "dark" : "light";
+  };
+
+  const computeSlideBrightness = useCallback(
+    async (
+      slide: BannerSlideConfig,
+      index: number,
+      device: "desktop" | "mobile",
+      imageUrl: string,
+      imageIdentifier: string,
+    ) => {
+      const key = `${slide.id}-${device}-${imageIdentifier}`;
+      if (activeCalculations.current.has(key)) return;
+      activeCalculations.current.add(key);
+
+      setComputationStates((current) => ({
+        ...current,
+        [slide.id]: {
+          ...current[slide.id],
+          [device]: "calculating",
+        },
+      }));
+
+      const brightness = await calculateImageBrightness(imageUrl);
+
+      activeCalculations.current.delete(key);
+
+      // Verify slide still exists with same image using ref (avoids stale closure)
+      const currentSlide = formStateRef.current.slides.find((s) => s.id === slide.id);
+      const currentImageId =
+        device === "desktop"
+          ? currentSlide?.desktopImage
+          : currentSlide?.mobileImage;
+      if (
+        !currentSlide ||
+        currentImageId !== imageIdentifier ||
+        !formStateRef.current.brightnessAdaptiveOverlayEnabled
+      ) {
+        setComputationStates((current) => ({
+          ...current,
+          [slide.id]: {
+            ...current[slide.id],
+            [device]: brightness === null ? "failed" : "calculated",
+          },
+        }));
+        return;
+      }
+
+      if (brightness === null) {
+        updateSlide(index, {
+          [`${device}AverageBrightness`]: 0,
+          [`${device}AdaptiveOverlayVariant`]: "black",
+          [`${device}AdaptiveOverlayOpacity`]: ADAPTIVE_OVERLAY_OPACITY,
+        } as Partial<BannerSlideConfig>);
+        setComputationStates((current) => ({
+          ...current,
+          [slide.id]: {
+            ...current[slide.id],
+            [device]: "failed",
+          },
+        }));
+        return;
+      }
+
+      const variant = brightness < BRIGHTNESS_THRESHOLD ? "black" : "white";
+      updateSlide(index, {
+        [`${device}AverageBrightness`]: brightness,
+        [`${device}AdaptiveOverlayVariant`]: variant,
+        [`${device}AdaptiveOverlayOpacity`]: ADAPTIVE_OVERLAY_OPACITY,
+      } as Partial<BannerSlideConfig>);
+      setComputationStates((current) => ({
+        ...current,
+        [slide.id]: {
+          ...current[slide.id],
+          [device]: "calculated",
+        },
+      }));
+
+      // Copy result to the missing device after successful computation
+      const otherDevice = device === "desktop" ? "mobile" : "desktop";
+      if (
+        otherDevice === "mobile" &&
+        !currentSlide.mobileImage &&
+        currentSlide.desktopImage
+      ) {
+        updateSlide(index, {
+          mobileAverageBrightness: brightness,
+          mobileAdaptiveOverlayVariant: variant,
+          mobileAdaptiveOverlayOpacity: ADAPTIVE_OVERLAY_OPACITY,
+        });
+        setComputationStates((current) => ({
+          ...current,
+          [slide.id]: { ...current[slide.id], mobile: "calculated" },
+        }));
+      } else if (
+        otherDevice === "desktop" &&
+        !currentSlide.desktopImage &&
+        currentSlide.mobileImage
+      ) {
+        updateSlide(index, {
+          desktopAverageBrightness: brightness,
+          desktopAdaptiveOverlayVariant: variant,
+          desktopAdaptiveOverlayOpacity: ADAPTIVE_OVERLAY_OPACITY,
+        });
+        setComputationStates((current) => ({
+          ...current,
+          [slide.id]: { ...current[slide.id], desktop: "calculated" },
+        }));
+      }
+    },
+    [updateSlide],
+  );
+
   const addSlide = useCallback(() => {
     setFormState((current) => ({
       ...current,
@@ -403,6 +560,110 @@ export default function BannerPage() {
     },
     [filePreviewUrls, localPreviewUrls],
   );
+
+  const lastProcessedImages = useRef<Record<string, { desktop?: string; mobile?: string }>>({});
+  const computationStatesRef = useRef(computationStates);
+  computationStatesRef.current = computationStates;
+
+  // Initialize on mount: mark persisted results as calculated and record current images
+  useEffect(() => {
+    const initialStates: Record<string, SlideComputationState> = {};
+    formState.slides.forEach((slide) => {
+      // Note: parseBannerSlide always returns a number for brightness (fallback 0),
+      // so we cannot distinguish "computed 0" from "fallback 0" at runtime.
+      // A slide with an image and brightness=0 is conservatively treated as calculated.
+      // This is acceptable because the visual result of fallback (0/black/30) is identical
+      // to a genuine dark image, and image replacement still triggers re-computation.
+      const hasDesktopResult = slide.desktopImage && slide.desktopAverageBrightness !== undefined;
+      const hasMobileResult = slide.mobileImage && slide.mobileAverageBrightness !== undefined;
+      initialStates[slide.id] = {
+        desktop: hasDesktopResult ? "calculated" : "not_calculated",
+        mobile: hasMobileResult ? "calculated" : "not_calculated",
+      };
+    });
+    setComputationStates(initialStates);
+
+    formState.slides.forEach((slide) => {
+      lastProcessedImages.current[slide.id] = {
+        desktop: slide.desktopImage,
+        mobile: slide.mobileImage,
+      };
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!formState.brightnessAdaptiveOverlayEnabled) {
+      lastProcessedImages.current = {};
+      return;
+    }
+
+    const pendingComputations: Array<() => void> = [];
+    let hasNewWork = false;
+
+    formState.slides.forEach((slide, index) => {
+      const last = lastProcessedImages.current[slide.id] || {};
+      const state = computationStatesRef.current[slide.id] || {
+        desktop: "not_calculated",
+        mobile: "not_calculated",
+      };
+
+      const desktopImage = slide.desktopImage;
+      if (
+        desktopImage &&
+        desktopImage !== last.desktop &&
+        state.desktop !== "calculating"
+      ) {
+        hasNewWork = true;
+        pendingComputations.push(() => {
+          const previewUrl = resolvePreviewUrl(desktopImage, `${slide.id}.desktopImage`);
+          if (previewUrl) {
+            computeSlideBrightness(slide, index, "desktop", previewUrl, desktopImage);
+          }
+        });
+      }
+
+      const mobileImage = slide.mobileImage;
+      if (
+        mobileImage &&
+        mobileImage !== last.mobile &&
+        state.mobile !== "calculating"
+      ) {
+        hasNewWork = true;
+        pendingComputations.push(() => {
+          const previewUrl = resolvePreviewUrl(mobileImage, `${slide.id}.mobileImage`);
+          if (previewUrl) {
+            computeSlideBrightness(slide, index, "mobile", previewUrl, mobileImage);
+          }
+        });
+      }
+    });
+
+    if (!hasNewWork) return;
+
+    formState.slides.forEach((slide) => {
+      lastProcessedImages.current[slide.id] = {
+        desktop: slide.desktopImage,
+        mobile: slide.mobileImage,
+      };
+    });
+
+    let taskIndex = 0;
+    const running = new Set<Promise<void>>();
+
+    async function runNext() {
+      if (taskIndex >= pendingComputations.length) return;
+      const fn = pendingComputations[taskIndex++];
+      const promise = Promise.resolve().then(() => fn());
+      running.add(promise);
+      await promise;
+      running.delete(promise);
+      runNext();
+    }
+
+    for (let i = 0; i < 3 && i < pendingComputations.length; i++) {
+      runNext();
+    }
+  }, [formState.brightnessAdaptiveOverlayEnabled, formState.slides, computeSlideBrightness, resolvePreviewUrl]);
 
   const previewConfig = useMemo<BannerPreviewConfig>(
     () => ({
@@ -516,6 +777,26 @@ export default function BannerPage() {
               })
             }
           />
+
+          <s-box padding="base" borderWidth="base" borderRadius="base">
+            <s-stack direction="block" gap="small">
+              <s-text tone="neutral">Adaptive overlay</s-text>
+              <s-switch
+                label="Brightness adaptive overlay"
+                checked={formState.brightnessAdaptiveOverlayEnabled}
+                onChange={(event) =>
+                  updateFormState({
+                    brightnessAdaptiveOverlayEnabled: event.currentTarget.checked,
+                  })
+                }
+              />
+              <s-text tone="neutral">
+                Turn on automatic image brightness analysis for all banner slides.
+                Dark images use a black overlay.
+                Light images use a white overlay with dark text.
+              </s-text>
+            </s-stack>
+          </s-box>
         </s-stack>
       </s-section>
 
@@ -622,6 +903,24 @@ export default function BannerPage() {
                     updateSlide(index, { videoUrl: event.currentTarget.value })
                   }
                 />
+
+                {formState.brightnessAdaptiveOverlayEnabled ? (
+                  <s-box padding="base" borderWidth="base" borderRadius="base" background="subdued">
+                    <s-stack direction="block" gap="small">
+                      <s-text type="strong">Brightness analysis</s-text>
+                      <s-text tone="neutral">
+                        Desktop: {(slide.desktopAverageBrightness ?? 0)} / {getToneLabel(slide.desktopAverageBrightness)} / {slide.desktopAdaptiveOverlayVariant === "white" ? "white overlay" : "black overlay"}
+                        {computationStates[slide.id]?.desktop === "failed" ? " (Unable to read image brightness — default overlay applied)" : ""}
+                      </s-text>
+                      <s-text tone="neutral">
+                        Mobile: {(slide.mobileAverageBrightness ?? 0)} / {getToneLabel(slide.mobileAverageBrightness)} / {slide.mobileAdaptiveOverlayVariant === "white" ? "white overlay" : "black overlay"}
+                        {computationStates[slide.id]?.mobile === "failed" ? " (Unable to read image brightness — default overlay applied)" : ""}
+                        {!slide.mobileImage && slide.desktopImage ? " (copied from desktop)" : ""}
+                        {slide.mobileImage && !slide.desktopImage ? " (copied from mobile)" : ""}
+                      </s-text>
+                    </s-stack>
+                  </s-box>
+                ) : null}
 
                 <s-text-field
                   label="Heading"
