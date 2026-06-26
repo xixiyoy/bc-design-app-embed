@@ -23,6 +23,12 @@ import {
   type BannerConfig,
   type BannerSlideConfig,
 } from "../lib/bc-design/config-types";
+import {
+  pendingImageIdentifier,
+  resetAdaptiveOverlayForImageField,
+  runLimitedBrightnessTasks,
+  type BrightnessTask,
+} from "../lib/bc-design/banner-brightness";
 import { createShopifyFileFromUpload } from "../lib/bc-design/files.server";
 import {
   loadBannerConfig,
@@ -598,6 +604,37 @@ export default function BannerPage() {
     [],
   );
 
+  const trackPendingImageFile = useCallback(
+    (index: number, field: "desktopImage" | "mobileImage", file: File | null) => {
+      const slide = formStateRef.current.slides[index];
+      if (!slide) return;
+
+      trackPendingFile(`${slide.id}.${field}`, file);
+      if (!file) return;
+
+      const device = field === "desktopImage" ? "desktop" : "mobile";
+      const imageIdentifier = pendingImageIdentifier(
+        slide.id,
+        field,
+        file,
+        crypto.randomUUID(),
+      );
+
+      updateSlide(index, {
+        [field]: imageIdentifier,
+        ...resetAdaptiveOverlayForImageField(field),
+      } as Partial<BannerSlideConfig>);
+      setComputationStates((current) => ({
+        ...current,
+        [slide.id]: {
+          ...current[slide.id],
+          [device]: "not_calculated",
+        },
+      }));
+    },
+    [trackPendingFile, updateSlide],
+  );
+
   const resolvePreviewUrl = useCallback(
     (gid: string | undefined, localKey: string) => {
       if (localPreviewUrls[localKey]) {
@@ -699,7 +736,7 @@ export default function BannerPage() {
       return;
     }
 
-    const pendingComputations: Array<() => void> = [];
+    const pendingComputations: BrightnessTask[] = [];
     let hasNewWork = false;
 
     // Handle image deletion: when a device image becomes blank and the other
@@ -775,7 +812,7 @@ export default function BannerPage() {
             `${slide.id}.desktopImage`,
           );
           if (previewUrl) {
-            computeSlideBrightness(
+            return computeSlideBrightness(
               slide,
               "desktop",
               previewUrl,
@@ -798,7 +835,7 @@ export default function BannerPage() {
             `${slide.id}.mobileImage`,
           );
           if (previewUrl) {
-            computeSlideBrightness(
+            return computeSlideBrightness(
               slide,
               "mobile",
               previewUrl,
@@ -820,18 +857,7 @@ export default function BannerPage() {
 
     if (!hasNewWork) return;
 
-    let taskIndex = 0;
-
-    async function runNext() {
-      if (taskIndex >= pendingComputations.length) return;
-      const fn = pendingComputations[taskIndex++];
-      await Promise.resolve().then(() => fn());
-      runNext();
-    }
-
-    for (let i = 0; i < 3 && i < pendingComputations.length; i++) {
-      runNext();
-    }
+    void runLimitedBrightnessTasks(pendingComputations, 3);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     formState.brightnessAdaptiveOverlayEnabled,
@@ -1041,7 +1067,7 @@ export default function BannerPage() {
                     `${slide.id}.desktopImage`,
                   )}
                   onChange={(file) =>
-                    trackPendingFile(`${slide.id}.desktopImage`, file)
+                    trackPendingImageFile(index, "desktopImage", file)
                   }
                 />
 
@@ -1054,7 +1080,7 @@ export default function BannerPage() {
                     `${slide.id}.mobileImage`,
                   )}
                   onChange={(file) =>
-                    trackPendingFile(`${slide.id}.mobileImage`, file)
+                    trackPendingImageFile(index, "mobileImage", file)
                   }
                 />
 
