@@ -68,6 +68,33 @@ const METAFIELD_DEFINITION_CREATE = `#graphql
   }
 `;
 
+const METAFIELD_DEFINITION_UPDATE = `#graphql
+  mutation BcDesignMetafieldDefinitionUpdate($definition: MetafieldDefinitionUpdateInput!) {
+    metafieldDefinitionUpdate(definition: $definition) {
+      updatedDefinition {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const GET_METAFIELD_DEFINITIONS = `#graphql
+  query BcDesignGetMetafieldDefinitions($ownerType: MetafieldOwnerType!, $namespace: String!, $key: String!) {
+    metafieldDefinitions(ownerType: $ownerType, namespace: $namespace, key: $key, first: 1) {
+      nodes {
+        id
+        access {
+          storefront
+        }
+      }
+    }
+  }
+`;
+
 let _definitionsEnsured = false;
 
 async function ensureMetafieldDefinitions(admin: AdminGraphqlClient): Promise<void> {
@@ -80,7 +107,7 @@ async function ensureMetafieldDefinitions(admin: AdminGraphqlClient): Promise<vo
 
   for (const { key, name } of configs) {
     try {
-      await adminGraphql<any>(admin, METAFIELD_DEFINITION_CREATE, {
+      const createResult = await adminGraphql<any>(admin, METAFIELD_DEFINITION_CREATE, {
         definition: {
           name,
           namespace: "$app",
@@ -93,8 +120,30 @@ async function ensureMetafieldDefinitions(admin: AdminGraphqlClient): Promise<vo
           },
         },
       });
+
+      // If create failed (definition already exists), update its access
+      if (createResult.metafieldDefinitionCreate?.userErrors?.length > 0) {
+        const queryResult = await adminGraphql<any>(admin, GET_METAFIELD_DEFINITIONS, {
+          ownerType: "APPINSTALLATION",
+          namespace: "$app",
+          key,
+        });
+        const existing = queryResult.metafieldDefinitions?.nodes?.[0];
+        if (existing && existing.access?.storefront !== "PUBLIC_READ") {
+          await adminGraphql<any>(admin, METAFIELD_DEFINITION_UPDATE, {
+            definition: {
+              key,
+              namespace: "$app",
+              ownerType: "APPINSTALLATION",
+              access: {
+                storefront: "PUBLIC_READ",
+              },
+            },
+          });
+        }
+      }
     } catch {
-      // Definition may already exist — ignore errors
+      // Ignore unexpected errors
     }
   }
 
