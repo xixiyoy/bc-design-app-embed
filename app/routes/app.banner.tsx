@@ -287,7 +287,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const previous = await loadBannerConfig(admin);
   const config = parseBannerConfigPayload(configRaw, previous);
   await mergeUploadedSlideFiles(admin, formData, config, previous);
-  const saved = await saveBannerConfig(admin, config);
+  await saveBannerConfig(admin, config);
   return { intent, ok: true, message: "Banner saved.", config };
 };
 

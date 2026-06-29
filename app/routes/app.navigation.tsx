@@ -331,7 +331,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       config.secondLevelConfigs = config.secondLevelConfigs.map(
         sanitizeNavigationSecondLevelConfig,
       );
-      const saved = await saveNavigationConfig(admin, config);
+      await saveNavigationConfig(admin, config);
       return { intent, ok: true, message: "Navigation saved.", config };
     } catch (error) {
       const message =
