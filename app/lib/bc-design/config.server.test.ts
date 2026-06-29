@@ -253,6 +253,78 @@ describe("loadBannerConfig", () => {
     expect(config.slides[0].videoPosterUrl).toBe("https://cdn.shopify.com/videos/999_poster.jpg");
     expect(adminGraphql).toHaveBeenCalledTimes(4);
   });
+
+  it("should progressively query video if videoFileUrl is present but videoPosterUrl is undefined, and skip if both are resolved", async () => {
+    // 1. Mock config where slide has videoFileUrl but videoPosterUrl is undefined
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: {
+        id: "gid://shopify/AppInstallation/1",
+        banner: {
+          jsonValue: {
+            autoplay: true,
+            autoplaySpeed: 5,
+            slides: [
+              {
+                id: "slide-1",
+                video: "gid://shopify/Video/999",
+                videoFileUrl: "https://cdn.shopify.com/videos/999.mp4",
+                videoPosterUrl: undefined,
+                heading: "Heading",
+              },
+              {
+                id: "slide-2",
+                video: "gid://shopify/Video/888",
+                videoFileUrl: "https://cdn.shopify.com/videos/888.mp4",
+                videoPosterUrl: "", // already queried and empty
+                heading: "Heading 2",
+              }
+            ],
+            migrationCompleted: true,
+          },
+        },
+      },
+    });
+
+    // 2. Mock GET_FILE_DETAILS for gid://shopify/Video/999 only, since gid://shopify/Video/888 should be skipped
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "gid://shopify/Video/999",
+          fileStatus: "READY",
+          sources: [
+            { url: "https://cdn.shopify.com/videos/999.mp4" }
+          ],
+          preview: {
+            image: null // no poster url
+          }
+        }
+      ]
+    });
+
+    // 3. Mock save AppInstallation ID
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: {
+        id: "gid://shopify/AppInstallation/1",
+      }
+    });
+
+    // 4. Mock Mutation to update metafield
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      metafieldsSet: {
+        metafields: [],
+        userErrors: []
+      }
+    });
+
+    const config = await loadBannerConfig({} as any);
+    // Verified that slide-1 videoPosterUrl gets resolved to ""
+    expect(config.slides[0].videoPosterUrl).toBe("");
+    
+    // Check that we only queried GET_FILE_DETAILS with the pending video GID from slide-1
+    const fileDetailsCalls = vi.mocked(adminGraphql).mock.calls.filter(c => c[1]?.includes("BcDesignGetFileDetails"));
+    expect(fileDetailsCalls.length).toBe(1);
+    expect(fileDetailsCalls[0][2]).toEqual({ ids: ["gid://shopify/Video/999"] });
+  });
 });
 
 describe("saveNavigationConfig & saveBannerConfig Errors", () => {
