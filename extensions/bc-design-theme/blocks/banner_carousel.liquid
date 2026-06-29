@@ -1,5 +1,5 @@
 {% assign bid = block.id %}
-{% assign banner_config_meta = app.metafields.app.banner_config %}
+{% assign banner_config_meta = app.metafields['$app'].banner_config %}
 {% assign banner_config = banner_config_meta.value %}
 
 {% if template.name == 'index' %}
@@ -80,6 +80,7 @@
 
   <script>
   (function () {
+    console.log('[BC Design] banner_config', {{ banner_config | json }});
     var embed = document.querySelector('[data-bc-design-embed="banner"]');
     if (!embed) return;
     var timer = window.setTimeout(function () {

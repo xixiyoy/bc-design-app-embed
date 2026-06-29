@@ -54,102 +54,6 @@ export const SET_CONFIG_MUTATION = `#graphql
   }
 `;
 
-const METAFIELD_DEFINITION_CREATE = `#graphql
-  mutation BcDesignMetafieldDefinitionCreate($definition: MetafieldDefinitionInput!) {
-    metafieldDefinitionCreate(definition: $definition) {
-      createdDefinition {
-        id
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
-
-const METAFIELD_DEFINITION_UPDATE = `#graphql
-  mutation BcDesignMetafieldDefinitionUpdate($definition: MetafieldDefinitionUpdateInput!) {
-    metafieldDefinitionUpdate(definition: $definition) {
-      updatedDefinition {
-        id
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
-
-const GET_METAFIELD_DEFINITIONS = `#graphql
-  query BcDesignGetMetafieldDefinitions($ownerType: MetafieldOwnerType!, $namespace: String!, $key: String!) {
-    metafieldDefinitions(ownerType: $ownerType, namespace: $namespace, key: $key, first: 1) {
-      nodes {
-        id
-        access {
-          storefront
-        }
-      }
-    }
-  }
-`;
-
-let _definitionsEnsured = false;
-
-async function ensureMetafieldDefinitions(admin: AdminGraphqlClient): Promise<void> {
-  if (_definitionsEnsured) return;
-
-  const configs = [
-    { key: "navigation_config", name: "Navigation Configuration" },
-    { key: "banner_config", name: "Banner Configuration" },
-  ];
-
-  for (const { key, name } of configs) {
-    try {
-      const createResult = await adminGraphql<any>(admin, METAFIELD_DEFINITION_CREATE, {
-        definition: {
-          name,
-          namespace: "$app",
-          key,
-          type: "json",
-          ownerType: "APPINSTALLATION",
-          access: {
-            admin: "MERCHANT_READ_WRITE",
-            storefront: "PUBLIC_READ",
-          },
-        },
-      });
-
-      // If create failed (definition already exists), update its access
-      if (createResult.metafieldDefinitionCreate?.userErrors?.length > 0) {
-        const queryResult = await adminGraphql<any>(admin, GET_METAFIELD_DEFINITIONS, {
-          ownerType: "APPINSTALLATION",
-          namespace: "$app",
-          key,
-        });
-        const existing = queryResult.metafieldDefinitions?.nodes?.[0];
-        if (existing && existing.access?.storefront !== "PUBLIC_READ") {
-          await adminGraphql<any>(admin, METAFIELD_DEFINITION_UPDATE, {
-            definition: {
-              key,
-              namespace: "$app",
-              ownerType: "APPINSTALLATION",
-              access: {
-                storefront: "PUBLIC_READ",
-              },
-            },
-          });
-        }
-      }
-    } catch {
-      // Ignore unexpected errors
-    }
-  }
-
-  _definitionsEnsured = true;
-}
-
 export const GET_FILE_DETAILS = `#graphql
   query BcDesignGetFileDetails($ids: [ID!]!) {
     nodes(ids: $ids) {
@@ -177,6 +81,57 @@ export const GET_FILE_DETAILS = `#graphql
     }
   }
 `;
+
+async function resolveBannerSlideImageFilenames(
+  admin: AdminGraphqlClient,
+  config: BannerConfig,
+): Promise<boolean> {
+  const pendingGids = new Set<string>();
+  for (const slide of config.slides) {
+    if (slide.desktopImage && !slide.desktopImageFilename) {
+      pendingGids.add(slide.desktopImage);
+    }
+    if (slide.mobileImage && !slide.mobileImageFilename) {
+      pendingGids.add(slide.mobileImage);
+    }
+  }
+  if (pendingGids.size === 0) return false;
+
+  let needsSave = false;
+  try {
+    const filesData = await adminGraphql<any>(admin, GET_FILE_DETAILS, {
+      ids: [...pendingGids],
+    });
+    const fileUrls: Record<string, string> = {};
+    for (const node of filesData.nodes || []) {
+      if (!node?.preview?.image?.url) continue;
+      fileUrls[node.id] = node.preview.image.url;
+    }
+
+    for (const slide of config.slides) {
+      if (
+        slide.desktopImage &&
+        !slide.desktopImageFilename &&
+        fileUrls[slide.desktopImage]
+      ) {
+        slide.desktopImageFilename = extractFilename(fileUrls[slide.desktopImage]);
+        needsSave = true;
+      }
+      if (
+        slide.mobileImage &&
+        !slide.mobileImageFilename &&
+        fileUrls[slide.mobileImage]
+      ) {
+        slide.mobileImageFilename = extractFilename(fileUrls[slide.mobileImage]);
+        needsSave = true;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to resolve banner slide image filenames", e);
+  }
+
+  return needsSave;
+}
 
 export async function loadNavigationConfig(admin: AdminGraphqlClient): Promise<NavigationConfig> {
   const data = await adminGraphql<{ currentAppInstallation: any }>(admin, GET_CONFIG_QUERY);
@@ -253,7 +208,6 @@ export async function loadNavigationConfig(admin: AdminGraphqlClient): Promise<N
 }
 
 export async function saveNavigationConfig(admin: AdminGraphqlClient, config: NavigationConfig): Promise<void> {
-  await ensureMetafieldDefinitions(admin);
   const idData = await adminGraphql<{ currentAppInstallation: { id: string } }>(admin, GET_APP_ID_QUERY);
   const ownerId = idData.currentAppInstallation.id;
   
@@ -360,6 +314,10 @@ export async function loadBannerConfig(admin: AdminGraphqlClient): Promise<Banne
     }
   }
 
+  if (await resolveBannerSlideImageFilenames(admin, config)) {
+    needsSave = true;
+  }
+
   if (needsSave) {
     await saveBannerConfig(admin, config);
   }
@@ -368,7 +326,7 @@ export async function loadBannerConfig(admin: AdminGraphqlClient): Promise<Banne
 }
 
 export async function saveBannerConfig(admin: AdminGraphqlClient, config: BannerConfig): Promise<void> {
-  await ensureMetafieldDefinitions(admin);
+  await resolveBannerSlideImageFilenames(admin, config);
   const idData = await adminGraphql<{ currentAppInstallation: { id: string } }>(admin, GET_APP_ID_QUERY);
   const ownerId = idData.currentAppInstallation.id;
 

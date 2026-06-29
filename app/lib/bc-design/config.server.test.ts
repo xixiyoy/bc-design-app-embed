@@ -118,22 +118,14 @@ describe("loadNavigationConfig", () => {
       ]
     });
 
-    // 4. ensureMetafieldDefinitions: two metafieldDefinitionCreate calls
-    vi.mocked(adminGraphql).mockResolvedValueOnce({
-      metafieldDefinitionCreate: { createdDefinition: { id: "def1" }, userErrors: [] }
-    });
-    vi.mocked(adminGraphql).mockResolvedValueOnce({
-      metafieldDefinitionCreate: { createdDefinition: { id: "def2" }, userErrors: [] }
-    });
-
-    // 5. Getting App Installation ID for saving
+    // 4. Getting App Installation ID for saving
     vi.mocked(adminGraphql).mockResolvedValueOnce({
       currentAppInstallation: {
         id: "gid://shopify/AppInstallation/1",
       }
     });
 
-    // 6. SET_CONFIG_MUTATION response
+    // 5. SET_CONFIG_MUTATION response
     vi.mocked(adminGraphql).mockResolvedValueOnce({
       metafieldsSet: {
         metafields: [
@@ -148,7 +140,7 @@ describe("loadNavigationConfig", () => {
     expect(config.logoFileFilename).toBe("logo_file.png");
     expect(config.secondLevelConfigs[0].bigImage1Filename).toBe("big_img_1.png");
     expect(config.secondLevelConfigs[1].adImageFilename).toBe("ad_img.jpg");
-    expect(adminGraphql).toHaveBeenCalledTimes(6); // Query Config -> Resolve Files -> 2x Def Create -> Query App ID -> Set Config
+    expect(adminGraphql).toHaveBeenCalledTimes(4); // Query Config -> Resolve Files -> Query App ID -> Set Config
   });
 
   it("should return defaults and retry next time if legacy loader fails", async () => {
@@ -259,6 +251,56 @@ describe("loadBannerConfig", () => {
     const config = await loadBannerConfig({} as any);
     expect(config.slides[0].videoFileUrl).toBe("https://cdn.shopify.com/videos/999.mp4");
     expect(config.slides[0].videoPosterUrl).toBe("https://cdn.shopify.com/videos/999_poster.jpg");
+    expect(adminGraphql).toHaveBeenCalledTimes(4);
+  });
+
+  it("should progressively resolve missing image filenames from file GIDs", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: {
+        id: "gid://shopify/AppInstallation/1",
+        banner: {
+          jsonValue: {
+            autoplay: true,
+            autoplaySpeed: 5,
+            slides: [
+              {
+                id: "slide-1",
+                desktopImage: "gid://shopify/MediaImage/100",
+                heading: "Heading",
+              },
+            ],
+            migrationCompleted: true,
+          },
+        },
+      },
+    });
+
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "gid://shopify/MediaImage/100",
+          preview: {
+            image: { url: "https://cdn.shopify.com/files/banner-hero.jpg?v=1" },
+          },
+        },
+      ],
+    });
+
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: {
+        id: "gid://shopify/AppInstallation/1",
+      },
+    });
+
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      metafieldsSet: {
+        metafields: [{ key: "banner_config", value: "some-value" }],
+        userErrors: [],
+      },
+    });
+
+    const config = await loadBannerConfig({} as any);
+    expect(config.slides[0].desktopImageFilename).toBe("banner-hero.jpg");
     expect(adminGraphql).toHaveBeenCalledTimes(4);
   });
 

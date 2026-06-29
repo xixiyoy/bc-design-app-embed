@@ -23,7 +23,7 @@
   Theme App Extension validation/upload.
 {% endcomment %}
 
-{% assign nav_config_meta = app.metafields.app.navigation_config %}
+{% assign nav_config_meta = app.metafields['$app'].navigation_config %}
 {% assign nav_config = nav_config_meta.value %}
 {% assign bid = block.id %}
 {% assign placeholder_img = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==' %}
@@ -38,7 +38,7 @@
 {% else %}
   {% assign selected_menu_handle = nav_config.menuHandle %}
   {% assign menu = linklists[selected_menu_handle] %}
-  {% assign fixed_navigation = nav_config.fixedNavigation %}
+  {% assign bc_fixed_navigation = nav_config.fixedNavigation %}
   {% assign logo_type = nav_config.logoType | default: 'text' %}
   {% assign logo_text = nav_config.logoText | strip %}
   {% assign logo_file_url = nil %}
@@ -71,7 +71,7 @@
   }
 </style>
 
-<div class="phaetus-nav-root phaetus-nav-root--fixed" id="nav-root-{{ bid }}" {{ block.shopify_attributes }}>
+<div class="phaetus-nav-root{% if bc_fixed_navigation == true %} phaetus-nav-root--fixed{% endif %}" id="nav-root-{{ bid }}" data-bc-fixed-nav="{{ bc_fixed_navigation }}" {{ block.shopify_attributes }}>
 
   <!-- ========== Navbar ========== -->
   <nav class="navbar" id="navbar-{{ bid }}">
@@ -750,6 +750,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script>
 (function () {
+  console.log('[BC Design] navigation_config', {{ nav_config | json }});
   var embed = document.querySelector('[data-bc-design-embed="navigation"]');
   if (!embed) return;
   var timer = window.setTimeout(function () {

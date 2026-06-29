@@ -107,6 +107,16 @@ describe('bc-design-embed-placement', () => {
     expect(document.documentElement.style.getPropertyValue('--bc-design-nav-height')).not.toBe('');
   });
 
+  it('does not add banner margin-top when non-fixed navigation precedes banner', async () => {
+    await reloadPlacement(window);
+    const navRoot = document.querySelector('.phaetus-nav-root');
+    navRoot.classList.remove('phaetus-nav-root--fixed');
+    window.BCDesignEmbedPlacement.run();
+    const bannerBlock = document.getElementById('shopify-block-banner');
+    expect(bannerBlock.style.marginTop).toBe('');
+    expect(document.documentElement.style.getPropertyValue('--bc-design-nav-height')).not.toBe('');
+  });
+
   it('is idempotent when run() is called twice', async () => {
     await reloadPlacement(window);
     window.BCDesignEmbedPlacement.run();

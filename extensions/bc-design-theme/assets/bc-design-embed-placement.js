@@ -110,17 +110,8 @@
     const navHeight = measureNavHeight(navEmbed);
     document.documentElement.style.setProperty('--bc-design-nav-height', `${navHeight}px`);
 
-    const hasFixedNav = Boolean(navEmbed?.querySelector('.phaetus-nav-root--fixed'));
-    if (hasFixedNav) {
-      bannerBlock.style.marginTop = '';
-      return;
-    }
-
-    if (navEmbed && navHeight > 0) {
-      bannerBlock.style.marginTop = `${navHeight}px`;
-    } else {
-      bannerBlock.style.marginTop = '';
-    }
+    // Nav already reserves height in document flow; never add banner margin-top.
+    bannerBlock.style.marginTop = '';
   }
 
   function cancelInlineRevealFallback(embedEl) {
