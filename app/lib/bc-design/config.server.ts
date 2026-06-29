@@ -167,6 +167,7 @@ export async function saveNavigationConfig(admin: AdminGraphqlClient, config: Na
         ownerId,
         namespace: "$app",
         key: "navigation_config",
+        type: "json",
         value: JSON.stringify(payload),
       },
     ],
@@ -237,7 +238,7 @@ export async function loadBannerConfig(admin: AdminGraphqlClient): Promise<Banne
 
   // Progressive check: Retrieve poster URL / CDN url for processing videos
   const pendingVideoGids = config.slides
-    .filter((s) => s.video && (!s.videoFileUrl || !s.videoPosterUrl))
+    .filter((s) => s.video && !s.videoFileUrl)
     .map((s) => s.video as string);
 
   if (pendingVideoGids.length > 0) {
@@ -282,6 +283,7 @@ export async function saveBannerConfig(admin: AdminGraphqlClient, config: Banner
         ownerId,
         namespace: "$app",
         key: "banner_config",
+        type: "json",
         value: JSON.stringify(payload),
       },
     ],
