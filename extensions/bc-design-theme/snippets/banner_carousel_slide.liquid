@@ -85,6 +85,7 @@
             srcset="{{ desktop_image_filename | file_img_url: '960x' }} 960w, {{ desktop_image_filename | file_img_url: '1440x' }} 1440w, {{ desktop_image_filename | file_img_url: '1920x' }} 1920w, {{ desktop_image_filename | file_img_url: '2400x' }} 2400w, {{ desktop_image_filename | file_img_url: '2880x' }} 2880w"
             sizes="100vw"
             loading="{{ eager_load }}"
+            alt="{{ heading | escape }}"
           >
         </picture>
       {%- else -%}
@@ -94,6 +95,7 @@
           srcset="{{ desktop_image_filename | file_img_url: '960x' }} 960w, {{ desktop_image_filename | file_img_url: '1440x' }} 1440w, {{ desktop_image_filename | file_img_url: '1920x' }} 1920w, {{ desktop_image_filename | file_img_url: '2400x' }} 2400w, {{ desktop_image_filename | file_img_url: '2880x' }} 2880w"
           sizes="100vw"
           loading="{{ eager_load }}"
+          alt="{{ heading | escape }}"
         >
       {%- endif -%}
     {%- else -%}
