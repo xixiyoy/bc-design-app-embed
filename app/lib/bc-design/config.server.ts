@@ -133,16 +133,90 @@ async function resolveBannerSlideImageFilenames(
   return needsSave;
 }
 
+async function resolveNavigationImageFilenames(
+  admin: AdminGraphqlClient,
+  config: NavigationConfig,
+): Promise<boolean> {
+  const pendingGids = new Set<string>();
+
+  if (config.logoFile && !config.logoFileFilename) {
+    pendingGids.add(config.logoFile);
+  }
+
+  for (const child of config.secondLevelConfigs ?? []) {
+    const imageFields = [
+      ["bigImage1", "bigImage1Filename"],
+      ["bigImage2", "bigImage2Filename"],
+      ["bigImage3", "bigImage3Filename"],
+      ["adImage", "adImageFilename"],
+    ] as const;
+
+    for (const [gidKey, filenameKey] of imageFields) {
+      const gid = child[gidKey];
+      if (gid && !child[filenameKey]) {
+        pendingGids.add(gid);
+      }
+    }
+  }
+
+  if (pendingGids.size === 0) return false;
+
+  let needsSave = false;
+  try {
+    const filesData = await adminGraphql<any>(admin, GET_FILE_DETAILS, {
+      ids: [...pendingGids],
+    });
+    const fileUrls: Record<string, string> = {};
+    for (const node of filesData.nodes || []) {
+      if (!node?.preview?.image?.url) continue;
+      fileUrls[node.id] = node.preview.image.url;
+    }
+
+    if (
+      config.logoFile &&
+      !config.logoFileFilename &&
+      fileUrls[config.logoFile]
+    ) {
+      config.logoFileFilename = extractFilename(fileUrls[config.logoFile]);
+      needsSave = true;
+    }
+
+    for (const child of config.secondLevelConfigs ?? []) {
+      if (child.bigImage1 && !child.bigImage1Filename && fileUrls[child.bigImage1]) {
+        child.bigImage1Filename = extractFilename(fileUrls[child.bigImage1]);
+        needsSave = true;
+      }
+      if (child.bigImage2 && !child.bigImage2Filename && fileUrls[child.bigImage2]) {
+        child.bigImage2Filename = extractFilename(fileUrls[child.bigImage2]);
+        needsSave = true;
+      }
+      if (child.bigImage3 && !child.bigImage3Filename && fileUrls[child.bigImage3]) {
+        child.bigImage3Filename = extractFilename(fileUrls[child.bigImage3]);
+        needsSave = true;
+      }
+      if (child.adImage && !child.adImageFilename && fileUrls[child.adImage]) {
+        child.adImageFilename = extractFilename(fileUrls[child.adImage]);
+        needsSave = true;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to resolve navigation image filenames", e);
+  }
+
+  return needsSave;
+}
+
 export async function loadNavigationConfig(admin: AdminGraphqlClient): Promise<NavigationConfig> {
   const data = await adminGraphql<{ currentAppInstallation: any }>(admin, GET_CONFIG_QUERY);
   const metafield = data.currentAppInstallation?.navigation;
-  if (metafield?.jsonValue && metafield.jsonValue.migrationCompleted === true) {
-    return metafield.jsonValue as NavigationConfig;
-  }
-  
-  // Fallback migration: Query legacy metaobjects
+
   let config: NavigationConfig;
   let needsSave = false;
+
+  if (metafield?.jsonValue && metafield.jsonValue.migrationCompleted === true) {
+    config = metafield.jsonValue as NavigationConfig;
+  } else {
+  // Fallback migration: Query legacy metaobjects
 
   try {
     const legacyConfig = await loadLegacyNavigation(admin);
@@ -199,15 +273,21 @@ export async function loadNavigationConfig(admin: AdminGraphqlClient): Promise<N
     // Catch branch: return defaults WITHOUT setting migrationCompleted to true and WITHOUT saving
     return { ...NAVIGATION_DEFAULTS };
   }
+  }
+
+  if (await resolveNavigationImageFilenames(admin, config)) {
+    needsSave = true;
+  }
 
   if (needsSave) {
     await saveNavigationConfig(admin, config);
   }
-  
+
   return config;
 }
 
 export async function saveNavigationConfig(admin: AdminGraphqlClient, config: NavigationConfig): Promise<void> {
+  await resolveNavigationImageFilenames(admin, config);
   const idData = await adminGraphql<{ currentAppInstallation: { id: string } }>(admin, GET_APP_ID_QUERY);
   const ownerId = idData.currentAppInstallation.id;
   

@@ -143,6 +143,77 @@ describe("loadNavigationConfig", () => {
     expect(adminGraphql).toHaveBeenCalledTimes(4); // Query Config -> Resolve Files -> Query App ID -> Set Config
   });
 
+  it("should progressively resolve missing navigation image filenames from file GIDs", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: {
+        id: "gid://shopify/AppInstallation/1",
+        navigation: {
+          jsonValue: {
+            fixedNavigation: false,
+            logoType: "image",
+            logoFile: "gid://shopify/MediaImage/100",
+            menuHandle: "main-menu",
+            secondLevelConfigs: [
+              {
+                level1Index: 1,
+                level2Index: 1,
+                level1Title: "Product",
+                level2Title: "Hotend",
+                layoutType: "product_list",
+                adImage: "gid://shopify/MediaImage/102",
+              },
+              {
+                level1Index: 1,
+                level2Index: 2,
+                level1Title: "Product",
+                level2Title: "Accessories",
+                layoutType: "big_image",
+                bigImage1: "gid://shopify/MediaImage/101",
+              },
+            ],
+            migrationCompleted: true,
+          },
+        },
+      },
+    });
+
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "gid://shopify/MediaImage/100",
+          preview: { image: { url: "https://cdn.shopify.com/files/logo_file.png?v=1" } },
+        },
+        {
+          id: "gid://shopify/MediaImage/101",
+          preview: { image: { url: "https://cdn.shopify.com/files/big_img_1.png?v=2" } },
+        },
+        {
+          id: "gid://shopify/MediaImage/102",
+          preview: { image: { url: "https://cdn.shopify.com/files/ad_img.jpg?v=3" } },
+        },
+      ],
+    });
+
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: {
+        id: "gid://shopify/AppInstallation/1",
+      },
+    });
+
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      metafieldsSet: {
+        metafields: [{ key: "navigation_config", value: "some-value" }],
+        userErrors: [],
+      },
+    });
+
+    const config = await loadNavigationConfig({} as any);
+    expect(config.logoFileFilename).toBe("logo_file.png");
+    expect(config.secondLevelConfigs[0].adImageFilename).toBe("ad_img.jpg");
+    expect(config.secondLevelConfigs[1].bigImage1Filename).toBe("big_img_1.png");
+    expect(adminGraphql).toHaveBeenCalledTimes(4);
+  });
+
   it("should return defaults and retry next time if legacy loader fails", async () => {
     // 1. loadNavigationConfig reads currentAppInstallation metafield (missing)
     vi.mocked(adminGraphql).mockResolvedValueOnce({
