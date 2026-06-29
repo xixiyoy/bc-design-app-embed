@@ -238,7 +238,7 @@ export async function loadBannerConfig(admin: AdminGraphqlClient): Promise<Banne
 
   // Progressive check: Retrieve poster URL / CDN url for processing videos
   const pendingVideoGids = config.slides
-    .filter((s) => s.video && !s.videoFileUrl)
+    .filter((s) => s.video && (!s.videoFileUrl || s.videoPosterUrl === undefined))
     .map((s) => s.video as string);
 
   if (pendingVideoGids.length > 0) {
@@ -253,10 +253,8 @@ export async function loadBannerConfig(admin: AdminGraphqlClient): Promise<Banne
               slide.videoFileUrl = node.sources[0].url;
               needsSave = true;
             }
-            if (node.preview?.image?.url) {
-              slide.videoPosterUrl = node.preview.image.url;
-              needsSave = true;
-            }
+            slide.videoPosterUrl = node.preview?.image?.url || "";
+            needsSave = true;
           }
         }
       }
