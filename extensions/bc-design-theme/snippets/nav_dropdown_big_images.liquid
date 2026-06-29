@@ -5,11 +5,11 @@
   Image priority: theme custom image → level-3 linked resource → first 3 products from level-2 collection.
 
   Accepts:
-    child_link       — level 2 link object
-    custom_image_1   — optional custom image for the main position
-    custom_image_2   — optional custom image for the first side position
-    custom_image_3   — optional custom image for the second side position
-    placeholder_img  — fallback image data URI
+    child_link               — level 2 link object
+    custom_image_1_filename  — optional custom image filename for the main position
+    custom_image_2_filename  — optional custom image filename for the first side position
+    custom_image_3_filename  — optional custom image filename for the second side position
+    placeholder_img          — fallback image data URI
 {% endcomment %}
 
 {% assign grandchild_1 = nil %}
@@ -68,9 +68,8 @@
   {% assign main_url = grandchild_1.url %}
   {% assign main_alt = grandchild_1.title %}
 {% endif %}
-{% if custom_image_1 != blank %}
-  {% assign main_image = custom_image_1 | image_url: width: 912 %}
-  {% assign main_alt = custom_image_1.alt | default: main_alt %}
+{% if custom_image_1_filename != blank %}
+  {% assign main_image = custom_image_1_filename | file_img_url: '912x' %}
 {% elsif grandchild_1 != blank and grandchild_1.type == 'product_link' and grandchild_1.object != blank %}
   {% assign main_alt = grandchild_1.object.title %}
   {% if grandchild_1.object.featured_image %}
@@ -93,9 +92,8 @@
   {% assign side_1_url = grandchild_2.url %}
   {% assign side_1_alt = grandchild_2.title %}
 {% endif %}
-{% if custom_image_2 != blank %}
-  {% assign side_1_image = custom_image_2 | image_url: width: 568 %}
-  {% assign side_1_alt = custom_image_2.alt | default: side_1_alt %}
+{% if custom_image_2_filename != blank %}
+  {% assign side_1_image = custom_image_2_filename | file_img_url: '568x' %}
 {% elsif grandchild_2 != blank and grandchild_2.type == 'product_link' and grandchild_2.object != blank %}
   {% assign side_1_alt = grandchild_2.object.title %}
   {% if grandchild_2.object.featured_image %}
@@ -118,9 +116,8 @@
   {% assign side_2_url = grandchild_3.url %}
   {% assign side_2_alt = grandchild_3.title %}
 {% endif %}
-{% if custom_image_3 != blank %}
-  {% assign side_2_image = custom_image_3 | image_url: width: 568 %}
-  {% assign side_2_alt = custom_image_3.alt | default: side_2_alt %}
+{% if custom_image_3_filename != blank %}
+  {% assign side_2_image = custom_image_3_filename | file_img_url: '568x' %}
 {% elsif grandchild_3 != blank and grandchild_3.type == 'product_link' and grandchild_3.object != blank %}
   {% assign side_2_alt = grandchild_3.object.title %}
   {% if grandchild_3.object.featured_image %}

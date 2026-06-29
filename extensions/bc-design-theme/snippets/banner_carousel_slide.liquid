@@ -2,7 +2,7 @@
   Single banner carousel slide.
 
   Accepts:
-    desktop_image, mobile_image, video, video_url
+    desktop_image_filename, mobile_image_filename, video_url, video_file_url, video_poster_url
     heading, subheading
     primary_button_label, primary_button_link
     secondary_button_label, secondary_button_link
@@ -51,18 +51,7 @@
   {{ shopify_attributes }}
 >
   <div class="bc-banner-slide__media">
-    {%- if video != blank -%}
-      {{
-        video
-        | video_tag:
-          class: 'bc-banner-slide__video',
-          autoplay: true,
-          loop: true,
-          muted: true,
-          controls: false,
-          image_size: '2880x'
-      }}
-    {%- elsif video_url != blank -%}
+    {%- if video_url != blank -%}
       <video
         class="bc-banner-slide__video"
         src="{{ video_url | escape }}"
@@ -72,33 +61,40 @@
         playsinline
         preload="metadata"
       ></video>
-    {%- elsif desktop_image != blank -%}
-      {%- if mobile_image != blank -%}
+    {%- elsif video_file_url != blank -%}
+      <video
+        class="bc-banner-slide__video"
+        src="{{ video_file_url }}"
+        poster="{{ video_poster_url }}"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+      ></video>
+    {%- elsif desktop_image_filename != blank -%}
+      {%- if mobile_image_filename != blank -%}
         <picture>
           <source
             media="(max-width: 749px)"
-            srcset="{{ mobile_image | image_url: width: 900 }}"
+            srcset="{{ mobile_image_filename | file_img_url: '900x' }}"
           >
-          {{
-            desktop_image
-            | image_url: width: 2880
-            | image_tag:
-              class: 'bc-banner-slide__image',
-              widths: '960, 1440, 1920, 2400, 2880',
-              sizes: '100vw',
-              loading: eager_load
-          }}
+          <img
+            class="bc-banner-slide__image"
+            src="{{ desktop_image_filename | file_img_url: '2880x' }}"
+            srcset="{{ desktop_image_filename | file_img_url: '960x' }} 960w, {{ desktop_image_filename | file_img_url: '1440x' }} 1440w, {{ desktop_image_filename | file_img_url: '1920x' }} 1920w, {{ desktop_image_filename | file_img_url: '2400x' }} 2400w, {{ desktop_image_filename | file_img_url: '2880x' }} 2880w"
+            sizes="100vw"
+            loading="{{ eager_load }}"
+          >
         </picture>
       {%- else -%}
-        {{
-          desktop_image
-          | image_url: width: 2880
-          | image_tag:
-            class: 'bc-banner-slide__image',
-            widths: '960, 1440, 1920, 2400, 2880',
-            sizes: '100vw',
-            loading: eager_load
-        }}
+        <img
+          class="bc-banner-slide__image"
+          src="{{ desktop_image_filename | file_img_url: '2880x' }}"
+          srcset="{{ desktop_image_filename | file_img_url: '960x' }} 960w, {{ desktop_image_filename | file_img_url: '1440x' }} 1440w, {{ desktop_image_filename | file_img_url: '1920x' }} 1920w, {{ desktop_image_filename | file_img_url: '2400x' }} 2400w, {{ desktop_image_filename | file_img_url: '2880x' }} 2880w"
+          sizes="100vw"
+          loading="{{ eager_load }}"
+        >
       {%- endif -%}
     {%- else -%}
       {{ 'lifestyle-1' | placeholder_svg_tag: 'bc-banner-slide__image bc-banner-slide__placeholder' }}

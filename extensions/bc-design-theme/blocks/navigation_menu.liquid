@@ -23,7 +23,8 @@
   Theme App Extension validation/upload.
 {% endcomment %}
 
-{% assign nav_config = metaobjects['$app:navigation_config']['default'] %}
+{% assign nav_config_meta = app.metafields.app.navigation_config %}
+{% assign nav_config = nav_config_meta.value %}
 {% assign bid = block.id %}
 {% assign placeholder_img = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==' %}
 
@@ -35,16 +36,19 @@
 {% if nav_config == blank %}
   <div class="phaetus-nav-empty" {{ block.shopify_attributes }}>Configure navigation in the BC Design app.</div>
 {% else %}
-  {% assign selected_menu_handle = nav_config.menu_handle.value %}
+  {% assign selected_menu_handle = nav_config.menuHandle %}
   {% assign menu = linklists[selected_menu_handle] %}
-  {% assign fixed_navigation = nav_config.fixed_navigation.value %}
-  {% assign logo_type = nav_config.logo_type.value | default: 'text' %}
-  {% assign logo_text = nav_config.logo_text.value | strip %}
-  {% assign logo_file = nav_config.logo_file.value %}
-  {% assign icon_color = nav_config.icon_color.value | default: '#7a7b7e' %}
-  {% assign nav_background_color = nav_config.nav_background_color.value | default: '#ffffff' %}
-  {% assign primary_nav_text_color = nav_config.primary_nav_text_color.value | default: '#7a7b7e' %}
-  {% assign secondary_nav_text_color = nav_config.secondary_nav_text_color.value | default: '#7a7b7e' %}
+  {% assign fixed_navigation = nav_config.fixedNavigation %}
+  {% assign logo_type = nav_config.logoType | default: 'text' %}
+  {% assign logo_text = nav_config.logoText | strip %}
+  {% assign logo_file_url = nil %}
+  {% if nav_config.logoFileFilename != blank %}
+    {% assign logo_file_url = nav_config.logoFileFilename | file_img_url: 'master' %}
+  {% endif %}
+  {% assign icon_color = nav_config.iconColor | default: '#7a7b7e' %}
+  {% assign nav_background_color = nav_config.navBackgroundColor | default: '#ffffff' %}
+  {% assign primary_nav_text_color = nav_config.primaryNavTextColor | default: '#7a7b7e' %}
+  {% assign secondary_nav_text_color = nav_config.secondaryNavTextColor | default: '#7a7b7e' %}
 <style>
   #shopify-block-{{ bid }} {
     position: relative;
@@ -74,16 +78,13 @@
     <div class="navbar-inner">
 
       <a href="{{ routes.root_url }}" class="logo-wrap">
-        {% if logo_type == 'image' and logo_file != blank %}
-          {{
-            logo_file
-            | image_url: width: 480
-            | image_tag:
-              class: 'logo-img',
-              alt: logo_text,
-              widths: '120, 180, 240, 360, 480',
-              loading: 'eager'
-          }}
+        {% if logo_type == 'image' and logo_file_url != blank %}
+          <img
+            class="logo-img"
+            src="{{ logo_file_url }}"
+            alt="{{ logo_text | default: shop.name | escape }}"
+            loading="eager"
+          >
         {% else %}
           <span class="logo-text">{{ logo_text | default: shop.name }}</span>
         {% endif %}
@@ -169,22 +170,22 @@
             {% for child_link in link.links %}
               {% assign level_2_index = forloop.index %}
               {% assign child_layout = 'product_list' %}
-              {% assign big_image_1 = nil %}
-              {% assign big_image_2 = nil %}
-              {% assign big_image_3 = nil %}
-              {% assign ad_image = nil %}
+              {% assign big_image_1_filename = nil %}
+              {% assign big_image_2_filename = nil %}
+              {% assign big_image_3_filename = nil %}
+              {% assign ad_image_filename = nil %}
               {% assign ad_url = '' %}
 
-              {% for cfg in nav_config.second_level_configs.value %}
-                {% assign cfg_level_1_index = cfg.level_1_index.value | plus: 0 %}
-                {% assign cfg_level_2_index = cfg.level_2_index.value | plus: 0 %}
+              {% for cfg in nav_config.secondLevelConfigs %}
+                {% assign cfg_level_1_index = cfg.level1Index | plus: 0 %}
+                {% assign cfg_level_2_index = cfg.level2Index | plus: 0 %}
                 {% if cfg_level_1_index == level_1_index and cfg_level_2_index == level_2_index %}
-                  {% assign child_layout = cfg.layout_type.value | default: 'product_list' %}
-                  {% assign big_image_1 = cfg.big_image_1.value %}
-                  {% assign big_image_2 = cfg.big_image_2.value %}
-                  {% assign big_image_3 = cfg.big_image_3.value %}
-                  {% assign ad_image = cfg.ad_image.value %}
-                  {% assign ad_url = cfg.ad_url.value %}
+                  {% assign child_layout = cfg.layoutType | default: 'product_list' %}
+                  {% assign big_image_1_filename = cfg.bigImage1Filename %}
+                  {% assign big_image_2_filename = cfg.bigImage2Filename %}
+                  {% assign big_image_3_filename = cfg.bigImage3Filename %}
+                  {% assign ad_image_filename = cfg.adImageFilename %}
+                  {% assign ad_url = cfg.adUrl %}
                 {% endif %}
               {% endfor %}
 
@@ -196,9 +197,9 @@
                 >
                   {% render 'nav_dropdown_big_images',
                     child_link: child_link,
-                    custom_image_1: big_image_1,
-                    custom_image_2: big_image_2,
-                    custom_image_3: big_image_3,
+                    custom_image_1_filename: big_image_1_filename,
+                    custom_image_2_filename: big_image_2_filename,
+                    custom_image_3_filename: big_image_3_filename,
                     placeholder_img: placeholder_img
                   %}
                 </div>
@@ -218,7 +219,7 @@
                         %}
                       </div>
                       {% render 'nav_dropdown_product_ad',
-                        ad_image: ad_image,
+                        ad_image_filename: ad_image_filename,
                         ad_url: ad_url,
                         placeholder_img: placeholder_img
                       %}
