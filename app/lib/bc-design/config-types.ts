@@ -19,9 +19,13 @@ export type NavigationSecondLevelConfig = {
   level2Title: string;
   layoutType: NavigationLayoutType;
   bigImage1?: string;
+  bigImage1Filename?: string; // NEW
   bigImage2?: string;
+  bigImage2Filename?: string; // NEW
   bigImage3?: string;
+  bigImage3Filename?: string; // NEW
   adImage?: string;
+  adImageFilename?: string; // NEW
   adUrl?: string;
 };
 
@@ -30,20 +34,26 @@ export type NavigationConfig = {
   logoType: LogoType;
   logoText: string;
   logoFile?: string;
+  logoFileFilename?: string; // NEW
   navBackgroundColor: string;
   primaryNavTextColor: string;
   secondaryNavTextColor: string;
   iconColor: string;
   menuHandle: string;
   secondLevelConfigs: NavigationSecondLevelConfig[];
+  migrationCompleted?: boolean; // NEW
 };
 
 export type BannerSlideConfig = {
   id: string;
-  title: string;
+  title: string; // PRESERVED
   desktopImage?: string;
+  desktopImageFilename?: string; // NEW
   mobileImage?: string;
+  mobileImageFilename?: string; // NEW
   video?: string;
+  videoFileUrl?: string; // NEW
+  videoPosterUrl?: string; // NEW
   videoUrl?: string;
   heading: string;
   subheading: string;
@@ -51,11 +61,11 @@ export type BannerSlideConfig = {
   primaryButtonLink: string;
   secondaryButtonLabel: string;
   secondaryButtonLink: string;
-  desktopAverageBrightness?: number;
-  desktopAdaptiveOverlayVariant?: string;
+  desktopAverageBrightness?: number; // PRESERVED
+  desktopAdaptiveOverlayVariant?: "black" | "white";
   desktopAdaptiveOverlayOpacity?: number;
-  mobileAverageBrightness?: number;
-  mobileAdaptiveOverlayVariant?: string;
+  mobileAverageBrightness?: number; // PRESERVED
+  mobileAdaptiveOverlayVariant?: "black" | "white";
   mobileAdaptiveOverlayOpacity?: number;
 };
 
@@ -68,6 +78,7 @@ export type BannerConfig = {
   overlayOpacity: number;
   brightnessAdaptiveOverlayEnabled: boolean;
   slides: BannerSlideConfig[];
+  migrationCompleted?: boolean; // NEW
 };
 
 export const NAVIGATION_DEFAULTS: NavigationConfig = {
@@ -129,14 +140,18 @@ export function sanitizeNavigationSecondLevelConfig(
     return {
       ...base,
       bigImage1: config.bigImage1,
+      bigImage1Filename: config.bigImage1Filename,
       bigImage2: config.bigImage2,
+      bigImage2Filename: config.bigImage2Filename,
       bigImage3: config.bigImage3,
+      bigImage3Filename: config.bigImage3Filename,
     };
   }
 
   return {
     ...base,
     adImage: config.adImage,
+    adImageFilename: config.adImageFilename,
     adUrl: config.adUrl ?? "",
   };
 }
