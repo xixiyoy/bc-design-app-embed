@@ -328,9 +328,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         sanitizeNavigationSecondLevelConfig,
       );
       await mergeUploadedFiles(admin, formData, config, previous);
-      config.secondLevelConfigs = config.secondLevelConfigs.map(
-        sanitizeNavigationSecondLevelConfig,
-      );
       await saveNavigationConfig(admin, config);
       return { intent, ok: true, message: "Navigation saved.", config };
     } catch (error) {
