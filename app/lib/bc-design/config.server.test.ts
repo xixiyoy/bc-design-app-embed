@@ -118,14 +118,22 @@ describe("loadNavigationConfig", () => {
       ]
     });
 
-    // 4. Getting App Installation ID for saving
+    // 4. ensureMetafieldDefinitions: two metafieldDefinitionCreate calls
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      metafieldDefinitionCreate: { createdDefinition: { id: "def1" }, userErrors: [] }
+    });
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      metafieldDefinitionCreate: { createdDefinition: { id: "def2" }, userErrors: [] }
+    });
+
+    // 5. Getting App Installation ID for saving
     vi.mocked(adminGraphql).mockResolvedValueOnce({
       currentAppInstallation: {
         id: "gid://shopify/AppInstallation/1",
       }
     });
 
-    // 5. SET_CONFIG_MUTATION response
+    // 6. SET_CONFIG_MUTATION response
     vi.mocked(adminGraphql).mockResolvedValueOnce({
       metafieldsSet: {
         metafields: [
@@ -140,7 +148,7 @@ describe("loadNavigationConfig", () => {
     expect(config.logoFileFilename).toBe("logo_file.png");
     expect(config.secondLevelConfigs[0].bigImage1Filename).toBe("big_img_1.png");
     expect(config.secondLevelConfigs[1].adImageFilename).toBe("ad_img.jpg");
-    expect(adminGraphql).toHaveBeenCalledTimes(4); // Query Config -> Resolve Files -> Query App ID -> Set Config
+    expect(adminGraphql).toHaveBeenCalledTimes(6); // Query Config -> Resolve Files -> 2x Def Create -> Query App ID -> Set Config
   });
 
   it("should return defaults and retry next time if legacy loader fails", async () => {

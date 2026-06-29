@@ -54,6 +54,53 @@ export const SET_CONFIG_MUTATION = `#graphql
   }
 `;
 
+const METAFIELD_DEFINITION_CREATE = `#graphql
+  mutation BcDesignMetafieldDefinitionCreate($definition: MetafieldDefinitionInput!) {
+    metafieldDefinitionCreate(definition: $definition) {
+      createdDefinition {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+let _definitionsEnsured = false;
+
+async function ensureMetafieldDefinitions(admin: AdminGraphqlClient): Promise<void> {
+  if (_definitionsEnsured) return;
+
+  const configs = [
+    { key: "navigation_config", name: "Navigation Configuration" },
+    { key: "banner_config", name: "Banner Configuration" },
+  ];
+
+  for (const { key, name } of configs) {
+    try {
+      await adminGraphql<any>(admin, METAFIELD_DEFINITION_CREATE, {
+        definition: {
+          name,
+          namespace: "$app",
+          key,
+          type: "json",
+          ownerType: "APPINSTALLATION",
+          access: {
+            admin: "MERCHANT_READ_WRITE",
+            storefront: "PUBLIC_READ",
+          },
+        },
+      });
+    } catch {
+      // Definition may already exist — ignore errors
+    }
+  }
+
+  _definitionsEnsured = true;
+}
+
 export const GET_FILE_DETAILS = `#graphql
   query BcDesignGetFileDetails($ids: [ID!]!) {
     nodes(ids: $ids) {
@@ -157,6 +204,7 @@ export async function loadNavigationConfig(admin: AdminGraphqlClient): Promise<N
 }
 
 export async function saveNavigationConfig(admin: AdminGraphqlClient, config: NavigationConfig): Promise<void> {
+  await ensureMetafieldDefinitions(admin);
   const idData = await adminGraphql<{ currentAppInstallation: { id: string } }>(admin, GET_APP_ID_QUERY);
   const ownerId = idData.currentAppInstallation.id;
   
@@ -271,6 +319,7 @@ export async function loadBannerConfig(admin: AdminGraphqlClient): Promise<Banne
 }
 
 export async function saveBannerConfig(admin: AdminGraphqlClient, config: BannerConfig): Promise<void> {
+  await ensureMetafieldDefinitions(admin);
   const idData = await adminGraphql<{ currentAppInstallation: { id: string } }>(admin, GET_APP_ID_QUERY);
   const ownerId = idData.currentAppInstallation.id;
 
