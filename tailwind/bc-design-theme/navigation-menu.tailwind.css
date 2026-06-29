@@ -1,19 +1,27 @@
-/*! tailwindcss v4.3.1 | MIT License | https://tailwindcss.com */
 @layer theme, components, utilities;
-@layer theme {
-  :root, :host {
-    --color-bc-nav-black: oklch(0% 0 0);
-    --color-bc-nav-muted: oklch(58.5% 0.005 264);
-    --color-bc-nav-gray: oklch(85.2% 0 0);
-    --color-bc-nav-placeholder: oklch(65% 0 0);
-  }
+
+@import "tailwindcss/theme.css" layer(theme);
+@reference "tailwindcss";
+
+@theme {
+  --color-bc-nav-black: oklch(0% 0 0);
+  --color-bc-nav-muted: oklch(58.5% 0.005 264);
+  --color-bc-nav-gray: oklch(85.2% 0 0);
+  --color-bc-nav-placeholder: oklch(65% 0 0);
 }
+
 @layer components {
-  .phaetus-nav-root *, .phaetus-nav-root *::before, .phaetus-nav-root *::after {
+  /* ========== Root scope — all rules scoped to avoid theme conflicts ========== */
+  .phaetus-nav-root *,
+  .phaetus-nav-root *::before,
+  .phaetus-nav-root *::after {
     box-sizing: border-box;
   }
+
   .phaetus-nav-root {
+    /* Above page content (e.g. hero banner) so PC dropdown overlays subsequent sections */
     z-index: 1000;
+    /* Fluid scale — design baseline 1440×900; shrinks with browser window width and height */
     --phaetus-scale-w: calc(100vw / 1440px);
     --phaetus-scale-h: calc(100dvh / 794px);
     --phaetus-scale: clamp(0.55, min(var(--phaetus-scale-w), var(--phaetus-scale-h)), 1);
@@ -37,10 +45,12 @@
     --nav-more-btn-h: calc(51px * var(--phaetus-scale));
     --nav-more-btn-w: calc(140px * var(--phaetus-scale));
     --nav-products-area-w: calc(100% - var(--nav-ad-w) - var(--nav-panel-gap));
+    /* L1 nav width = content width − L2 sidebar − ad slot − 2×panel gap (e.g. 1300−200−200−40) */
     --nav-product-module-w: calc(100% - var(--nav-cat-w) - var(--nav-ad-w) - 30px);
     --nav-product-module-offset: calc(170px * var(--phaetus-scale));
     --nav-big-main-flex: 456;
     --nav-big-side-flex: 284.444;
+    /* Fixed navbar-inner sizes — design baseline 1440px, no viewport scaling */
     --nav-logo-h-fixed: 100%;
     --nav-font-fixed: 16px;
     --nav-icon-size-fixed: 40px;
@@ -50,12 +60,15 @@
     position: relative;
     width: 100%;
   }
+
   .phaetus-nav-empty {
     padding: 16px 24px;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 14px;
     color: var(--color-bc-nav-muted);
   }
+
+  /* ========== Navbar ========== */
   .phaetus-nav-root .navbar {
     width: 100%;
     height: var(--nav-height);
@@ -67,18 +80,22 @@
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
+
   .phaetus-nav-root.phaetus-nav-root--fixed {
     min-height: var(--nav-height);
   }
+
   .phaetus-nav-root.phaetus-nav-root--dropdown-open {
     z-index: 10001;
   }
+
   .phaetus-nav-root.phaetus-nav-root--fixed .navbar {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
   }
+
   .phaetus-nav-root .navbar-inner {
     width: 100%;
     height: var(--nav-height);
@@ -92,6 +109,8 @@
     padding: 0 clamp(24px, calc(70px * var(--phaetus-scale)), 70px);
     overflow: hidden;
   }
+
+  /* Logo — horizontal inset via navbar-inner padding */
   .phaetus-nav-root .logo-wrap {
     display: flex;
     align-items: center;
@@ -105,6 +124,7 @@
     text-decoration: none;
     color: var(--color-bc-nav-black);
   }
+
   .phaetus-nav-root .logo-text {
     font-size: var(--logo-font-fixed);
     font-weight: 700;
@@ -112,6 +132,7 @@
     line-height: normal;
     color: var(--color-bc-nav-black);
   }
+
   .phaetus-nav-root .logo-img {
     display: block;
     height: var(--nav-logo-h-fixed);
@@ -120,6 +141,8 @@
     object-fit: contain;
     padding: 20px 0;
   }
+
+  /* Middle nav — flex between logo & icons; width = W − cat − ad − 2×gap */
   .phaetus-nav-root .nav-scroll-wrap {
     height: var(--nav-height);
     display: flex;
@@ -132,6 +155,7 @@
     z-index: 1;
     box-sizing: border-box;
   }
+
   @media (min-width: 1200px) {
     .phaetus-nav-root .nav-scroll-wrap {
       display: flex;
@@ -142,6 +166,7 @@
       margin: 0 auto;
     }
   }
+
   .phaetus-nav-root .nav-menu {
     height: var(--nav-height);
     margin: 0;
@@ -160,10 +185,13 @@
     -ms-overflow-style: none;
     position: relative;
   }
+
   .phaetus-nav-root .nav-menu::-webkit-scrollbar {
     display: none;
   }
-  .phaetus-nav-root .nav-menu::before, .phaetus-nav-root .nav-menu::after {
+
+  .phaetus-nav-root .nav-menu::before,
+  .phaetus-nav-root .nav-menu::after {
     content: '';
     position: absolute;
     top: 0;
@@ -174,20 +202,27 @@
     opacity: 0;
     transition: opacity 0.2s ease;
   }
+
   .phaetus-nav-root .nav-menu::before {
     left: 0;
     background: linear-gradient(to right, var(--phaetus-nav-background-color), transparent);
   }
+
   .phaetus-nav-root .nav-menu::after {
     right: 0;
     background: linear-gradient(to left, var(--phaetus-nav-background-color), transparent);
   }
-  .phaetus-nav-root .nav-scroll-wrap.is-faded-left .nav-menu::before, .phaetus-nav-root .nav-scroll-wrap.is-faded-right .nav-menu::after {
+
+  .phaetus-nav-root .nav-scroll-wrap.is-faded-left .nav-menu::before,
+  .phaetus-nav-root .nav-scroll-wrap.is-faded-right .nav-menu::after {
     opacity: 1;
   }
+
+  /* Overflow: center would shift items left under the logo; align to start for scroll */
   .phaetus-nav-root .nav-menu.is-overflowing {
     justify-content: flex-start;
   }
+
   .phaetus-nav-root .nav-item {
     height: var(--nav-height);
     display: inline-flex;
@@ -202,6 +237,8 @@
     flex: 0 0 auto;
     line-height: normal;
   }
+
+  /* nav-item wraps an <a>; width follows text */
   .phaetus-nav-root .nav-item > a {
     color: inherit;
     text-decoration: none;
@@ -211,9 +248,11 @@
     width: auto;
     height: 100%;
   }
+
   .phaetus-nav-root .nav-item.active {
     color: var(--phaetus-primary-nav-text-color);
   }
+
   .phaetus-nav-root .nav-item.active::after {
     content: '';
     position: absolute;
@@ -223,6 +262,7 @@
     height: var(--active-line-h);
     background: var(--phaetus-primary-nav-text-color);
   }
+
   .phaetus-nav-root .nav-scroll-controls {
     height: var(--nav-height);
     display: flex;
@@ -232,9 +272,11 @@
     margin-left: calc(4px * var(--phaetus-scale));
     transition: opacity 0.2s ease, visibility 0.2s ease;
   }
+
   .phaetus-nav-root .nav-scroll-controls.nav-hidden {
     display: none !important;
   }
+
   .phaetus-nav-root .nav-scroll-btn {
     width: calc(36px * var(--phaetus-scale));
     height: calc(48px * var(--phaetus-scale));
@@ -251,10 +293,12 @@
     appearance: none;
     transition: opacity 0.2s ease, color 0.2s ease;
   }
+
   .phaetus-nav-root .nav-scroll-btn:disabled {
     opacity: 0.28;
     cursor: default;
   }
+
   .phaetus-nav-root .nav-scroll-btn svg {
     width: calc(18px * var(--phaetus-scale));
     height: calc(18px * var(--phaetus-scale));
@@ -262,9 +306,12 @@
     min-height: 14px;
     display: block;
   }
+
   .phaetus-nav-root .nav-scroll-btn svg path {
     stroke: currentColor;
   }
+
+  /* Nav icons — horizontal inset via navbar-inner padding */
   .phaetus-nav-root .nav-icons {
     width: auto;
     height: var(--nav-icon-size-fixed);
@@ -278,17 +325,27 @@
     z-index: 2;
     background: var(--phaetus-nav-background-color);
   }
-  .phaetus-nav-root .nav-icons .icon-btn, .phaetus-nav-root .nav-icons .icon-btn:link, .phaetus-nav-root .nav-icons .icon-btn:visited, .phaetus-nav-root .nav-icons .icon-btn:hover, .phaetus-nav-root .nav-icons .icon-btn:focus, .phaetus-nav-root .nav-icons .icon-btn:active {
+
+  /* Theme link styles override inherited color on <a>; bind icon color explicitly */
+  .phaetus-nav-root .nav-icons .icon-btn,
+  .phaetus-nav-root .nav-icons .icon-btn:link,
+  .phaetus-nav-root .nav-icons .icon-btn:visited,
+  .phaetus-nav-root .nav-icons .icon-btn:hover,
+  .phaetus-nav-root .nav-icons .icon-btn:focus,
+  .phaetus-nav-root .nav-icons .icon-btn:active {
     color: var(--phaetus-nav-icon-color);
   }
+
   .phaetus-nav-root .nav-icons svg {
     display: block;
     width: var(--nav-icon-size-fixed);
     height: var(--nav-icon-size-fixed);
   }
+
   .phaetus-nav-root .nav-icons svg path {
     fill: var(--phaetus-nav-icon-color) !important;
   }
+
   .phaetus-nav-root .icon-btn {
     width: var(--nav-icon-size-fixed);
     height: var(--nav-icon-size-fixed);
@@ -300,9 +357,12 @@
     flex-shrink: 0;
     text-decoration: none;
   }
+
   .phaetus-nav-root .icon-btn + .icon-btn {
     margin-left: var(--nav-icon-gap);
   }
+
+  /* Hamburger — hidden on desktop */
   .phaetus-nav-root .hamburger {
     display: none;
     flex-direction: column;
@@ -318,6 +378,7 @@
     background: transparent;
     flex-shrink: 0;
   }
+
   .phaetus-nav-root .hamburger span {
     display: block;
     width: 24px;
@@ -325,15 +386,12 @@
     background: var(--color-bc-nav-black);
     transition: all 0.3s;
   }
-  .phaetus-nav-root .hamburger.active span:nth-child(1) {
-    transform: rotate(45deg) translate(5px, 5px);
-  }
-  .phaetus-nav-root .hamburger.active span:nth-child(2) {
-    opacity: 0;
-  }
-  .phaetus-nav-root .hamburger.active span:nth-child(3) {
-    transform: rotate(-45deg) translate(5px, -5px);
-  }
+
+  .phaetus-nav-root .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+  .phaetus-nav-root .hamburger.active span:nth-child(2) { opacity: 0; }
+  .phaetus-nav-root .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+  /* ========== PC Dropdown (floating drawer) ========== */
   .phaetus-nav-root .dropdown {
     position: fixed !important;
     top: var(--nav-height);
@@ -356,6 +414,7 @@
     pointer-events: none;
     overscroll-behavior: contain;
   }
+
   .phaetus-nav-root .dropdown.open {
     opacity: 1;
     visibility: visible;
@@ -369,6 +428,7 @@
     pointer-events: auto;
     -webkit-overflow-scrolling: touch;
   }
+
   .phaetus-nav-root .dropdown-inner {
     width: 100%;
     height: auto;
@@ -389,9 +449,12 @@
     min-width: 1000px;
     padding: 0 clamp(24px, calc(70px * var(--phaetus-scale)), 70px);
   }
+
   .phaetus-nav-root .dropdown.open .dropdown-inner {
     min-height: 0;
   }
+
+  /* Category sidebar (Level 2) — fixed while product list scrolls */
   .phaetus-nav-root .category-sidebar {
     grid-column: 1;
     grid-row: 2;
@@ -405,6 +468,7 @@
     overflow-y: auto;
     overscroll-behavior: contain;
   }
+
   .phaetus-nav-root .category-item {
     width: var(--nav-cat-w);
     height: calc(50px * var(--phaetus-scale));
@@ -422,10 +486,13 @@
     user-select: none;
     transition: background 0.2s, color 0.2s;
   }
+
   .phaetus-nav-root .category-item.active {
     background: rgba(122, 123, 126, 0.1);
     color: var(--phaetus-secondary-nav-text-color);
   }
+
+  /* ========== List mode content area (Level 2 → products) ========== */
   .phaetus-nav-root .dropdown-list-mode .dropdown-content-area {
     flex: 1;
     width: auto;
@@ -434,6 +501,7 @@
     max-height: none;
     overflow: visible;
   }
+
   .phaetus-nav-root .dropdown-content-area {
     grid-column: 2;
     grid-row: 2;
@@ -446,14 +514,17 @@
     height: auto;
     overflow: visible;
   }
+
   .phaetus-nav-root .content-list {
     width: 100%;
     height: auto;
     margin: 0;
   }
+
   .phaetus-nav-root .content-list.nav-hidden {
     display: none !important;
   }
+
   .phaetus-nav-root .content-list-body {
     width: 100%;
     height: auto;
@@ -464,9 +535,11 @@
     gap: var(--nav-panel-gap);
     margin-bottom: 40px;
   }
+
   .phaetus-nav-root .content-list-body--has-ad {
     display: block;
   }
+
   .phaetus-nav-root .content-list-main {
     display: grid;
     grid-template-columns: var(--nav-products-area-w) var(--nav-ad-w);
@@ -474,6 +547,7 @@
     align-items: stretch;
     width: 100%;
   }
+
   .phaetus-nav-root .content-list-products-grid {
     grid-column: 1;
     min-width: 0;
@@ -484,6 +558,7 @@
     align-content: start;
     overflow: visible;
   }
+
   .phaetus-nav-root .content-list-body--has-ad .content-list-ad {
     grid-column: 2;
     grid-row: 1;
@@ -494,11 +569,13 @@
     display: flex;
     flex-direction: column;
   }
+
   .phaetus-nav-root .content-list-body--has-ad .more-btn-wrap {
     grid-column: auto;
     width: var(--nav-products-area-w);
     margin-top: calc(var(--nav-product-gap) * 2);
   }
+
   .phaetus-nav-root .content-list-ad-link {
     display: block;
     width: 100%;
@@ -510,12 +587,15 @@
     text-decoration: none;
     color: inherit;
   }
+
   .phaetus-nav-root .content-list-ad-link img {
     display: block;
     width: 100%;
     height: 100%;
     min-height: 0;
   }
+
+  /* product-card is an <a> — needs text-decoration reset */
   .phaetus-nav-root .product-card {
     position: relative;
     width: 100%;
@@ -531,6 +611,7 @@
     text-decoration: none;
     color: inherit;
   }
+
   .phaetus-nav-root .product-card-tag {
     position: absolute;
     top: 0;
@@ -538,13 +619,16 @@
     line-height: 0;
     pointer-events: none;
   }
+
   .phaetus-nav-root .product-card-tag--nav {
     left: 0;
   }
+
   .phaetus-nav-root .product-card-tag--tips {
     right: 0;
     padding: 5px 5px 0 0;
   }
+
   .phaetus-nav-root .product-card-tag img {
     display: block;
     width: auto;
@@ -554,15 +638,19 @@
     object-fit: contain;
     background: transparent;
   }
+
   .phaetus-nav-root .product-card.nav-product-extra {
     display: none;
   }
+
   .phaetus-nav-root .content-list.is-expanded .product-card.nav-product-extra {
     display: flex;
   }
+
   .phaetus-nav-root .content-list.is-expanded .more-btn-wrap {
     display: none;
   }
+
   .phaetus-nav-root .product-card-inner {
     width: 100%;
     height: 100%;
@@ -570,6 +658,7 @@
     align-items: center;
     justify-content: flex-start;
   }
+
   .phaetus-nav-root .product-card-inner > img {
     width: auto;
     height: 100%;
@@ -578,6 +667,7 @@
     flex-shrink: 0;
     display: block;
   }
+
   .phaetus-nav-root .product-info {
     flex: 1;
     min-width: 0;
@@ -588,6 +678,7 @@
     justify-content: center;
     align-items: center;
   }
+
   .phaetus-nav-root .product-info-inner {
     width: 100%;
     height: calc(63px * var(--phaetus-scale));
@@ -596,6 +687,7 @@
     justify-content: flex-start;
     align-items: center;
   }
+
   .phaetus-nav-root .product-title {
     width: 100%;
     font-size: calc(16px * var(--phaetus-scale));
@@ -607,6 +699,7 @@
     line-height: normal;
     flex-shrink: 0;
   }
+
   .phaetus-nav-root .product-desc {
     width: 100%;
     margin-top: calc(10px * var(--phaetus-scale));
@@ -621,12 +714,14 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
   .phaetus-nav-root .more-btn-wrap {
     display: flex;
     justify-content: center;
     position: static;
     margin-top: var(--nav-product-gap);
   }
+
   .phaetus-nav-root .more-btn {
     width: var(--nav-more-btn-w);
     height: var(--nav-more-btn-h);
@@ -647,6 +742,8 @@
     padding: 0;
     appearance: none;
   }
+
+  /* ========== Close button — top row, right-aligned with ad slot ========== */
   .phaetus-nav-root .dropdown-close {
     grid-column: 2;
     grid-row: 1;
@@ -663,19 +760,24 @@
     margin: var(--nav-dropdown-row-gap) 0 0;
     flex-shrink: 0;
   }
+
   .phaetus-nav-root .dropdown-close svg {
     display: block;
     width: var(--nav-icon-size-fixed);
     height: var(--nav-icon-size-fixed);
   }
+
   .phaetus-nav-root .dropdown-close svg path {
     stroke: var(--phaetus-nav-icon-color) !important;
   }
+
+  /* ========== Big image mode content area ========== */
   .phaetus-nav-root .dropdown-big-mode .dropdown-content-area {
     overflow-x: hidden;
     overflow-y: auto;
     max-height: 100%;
   }
+
   .phaetus-nav-root .content-big {
     width: var(--nav-products-area-w);
     margin: 0;
@@ -684,9 +786,11 @@
     justify-content: flex-start;
     gap: var(--nav-big-image-gap);
   }
+
   .phaetus-nav-root .content-big.nav-hidden {
     display: none !important;
   }
+
   .phaetus-nav-root .big-image-main {
     flex: var(--nav-big-main-flex) 1 0;
     min-width: 0;
@@ -702,12 +806,14 @@
     text-decoration: none;
     color: inherit;
   }
+
   .phaetus-nav-root .big-image-main img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
   }
+
   .phaetus-nav-root .big-image-side {
     flex: var(--nav-big-side-flex) 1 0;
     min-width: 0;
@@ -717,6 +823,7 @@
     flex-direction: column;
     gap: var(--nav-big-image-gap);
   }
+
   .phaetus-nav-root .big-image-sub {
     flex: 1 1 0;
     min-height: 0;
@@ -731,33 +838,41 @@
     text-decoration: none;
     color: inherit;
   }
+
   .phaetus-nav-root .big-image-sub + .big-image-sub {
     margin-top: 0;
   }
+
   .phaetus-nav-root .big-image-sub img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
   }
+
   .phaetus-nav-root .big-image-empty {
     cursor: default;
   }
+
   .phaetus-nav-root .big-image-placeholder-text {
     font-size: 14px;
     font-weight: 500;
     color: var(--color-bc-nav-placeholder);
     text-align: center;
   }
+
+  /* ========== Dropdown height variants ========== */
   .phaetus-nav-root .dropdown-big-mode {
     min-height: 0;
     max-height: var(--dropdown-height);
   }
+
   .phaetus-nav-root .dropdown-big-mode.open {
     height: var(--dropdown-height);
     max-height: var(--dropdown-height);
     overflow: hidden;
   }
+
   .phaetus-nav-root .dropdown-list-mode.open {
     min-height: var(--dropdown-height);
     max-height: var(--dropdown-height);
@@ -765,37 +880,50 @@
     overflow-x: hidden;
     overscroll-behavior: contain;
   }
-  .phaetus-nav-root .nav-hidden {
-    display: none !important;
-  }
+
+  /* ========== Utility ========== */
+  .phaetus-nav-root .nav-hidden { display: none !important; }
+
+  /* Narrow desktop — keep nav + scroll controls between logo and icons */
   @media (max-width: 1439px) and (min-width: 1200px) {
     .phaetus-nav-root {
       --nav-item-gap: calc(24px * var(--phaetus-scale));
     }
+
     .phaetus-nav-root .navbar-inner {
       gap: calc(8px * var(--phaetus-scale));
       padding: 0 70px;
     }
+
     .phaetus-nav-root .nav-scroll-controls {
       margin-left: calc(2px * var(--phaetus-scale));
     }
+
     .phaetus-nav-root .nav-scroll-btn {
       width: calc(32px * var(--phaetus-scale));
       min-width: 24px;
     }
   }
-  .phaetus-nav-root .mobile-overlay, .phaetus-nav-root .mobile-menu {
+
+  /* ========== Mobile overlay / menu — hidden on desktop ========== */
+  .phaetus-nav-root .mobile-overlay,
+  .phaetus-nav-root .mobile-menu {
     display: none;
   }
+
+  /* ========== Mobile (< 1200px) ========== */
   @media (max-width: 1199px) {
+
     .phaetus-nav-root {
       --nav-height: 64px;
       --logo-gap-y: 25px;
     }
+
     .phaetus-nav-root .navbar {
       height: var(--nav-height);
       padding: 0 24px;
     }
+
     .phaetus-nav-root .navbar-inner {
       height: var(--nav-height);
       align-items: center;
@@ -805,34 +933,45 @@
       max-width: none;
       min-width: 0;
     }
+
     .phaetus-nav-root .logo-wrap {
       height: var(--logo-h);
       margin-top: 0;
       order: 1;
     }
+
     .phaetus-nav-root .logo-img {
       height: var(--logo-h);
       max-height: var(--logo-h);
       padding: 0;
     }
-    .phaetus-nav-root .nav-scroll-wrap, .phaetus-nav-root .nav-menu, .phaetus-nav-root .nav-icons {
+
+    .phaetus-nav-root .nav-scroll-wrap,
+    .phaetus-nav-root .nav-menu,
+    .phaetus-nav-root .nav-icons {
       display: none;
     }
+
     .phaetus-nav-root .hamburger {
       display: flex;
       order: 2;
     }
+
+    /* mobile-menu-open layout: hamburger | logo | icons */
     .phaetus-nav-root .navbar.mobile-menu-open {
       padding: 0 16px;
     }
+
     .phaetus-nav-root .navbar.mobile-menu-open .hamburger {
       margin-left: 0;
       margin-right: 14px;
       order: 1;
     }
+
     .phaetus-nav-root .navbar.mobile-menu-open .logo-wrap {
       order: 2;
     }
+
     .phaetus-nav-root .navbar.mobile-menu-open .nav-icons {
       width: auto;
       height: 40px;
@@ -843,41 +982,46 @@
       justify-content: flex-end;
       order: 3;
     }
+
     .phaetus-nav-root .navbar.mobile-menu-open .icon-btn {
       width: 40px;
       height: 40px;
       padding: 0;
     }
+
     .phaetus-nav-root .navbar.mobile-menu-open .icon-btn + .icon-btn {
       margin-left: 8px;
     }
+
+    /* Hide PC dropdown on mobile */
     .phaetus-nav-root .dropdown {
       display: none !important;
     }
+
+    /* Mobile overlay */
     .phaetus-nav-root .mobile-overlay {
       display: block;
       position: fixed;
       top: 64px;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.4);
       z-index: 997;
       opacity: 0;
       visibility: hidden;
       transition: opacity 0.3s, visibility 0.3s;
     }
+
     .phaetus-nav-root .mobile-overlay.open {
       opacity: 1;
       visibility: visible;
     }
+
+    /* Mobile menu drawer */
     .phaetus-nav-root .mobile-menu {
       display: block;
       position: fixed;
       top: 64px;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      left: 0; right: 0; bottom: 0;
       background: var(--phaetus-nav-background-color);
       z-index: 998;
       padding: 24px;
@@ -885,9 +1029,12 @@
       transform: translateX(100%);
       transition: transform 0.3s ease;
     }
+
     .phaetus-nav-root .mobile-menu.open {
       transform: translateX(0);
     }
+
+    /* Level 1 items */
     .phaetus-nav-root .mobile-nav-item {
       padding: 18px 0;
       font-size: 18px;
@@ -901,12 +1048,16 @@
       user-select: none;
       text-decoration: none;
     }
+
     .phaetus-nav-root .mobile-nav-item.open {
       color: var(--phaetus-primary-nav-text-color);
     }
-    .phaetus-nav-root .mobile-nav-item span, .phaetus-nav-root .mobile-category span {
+
+    .phaetus-nav-root .mobile-nav-item span,
+    .phaetus-nav-root .mobile-category span {
       display: block;
     }
+
     .phaetus-nav-root .mobile-nav-item .arrow {
       width: 20px;
       height: 20px;
@@ -916,17 +1067,23 @@
       transform: rotate(-90deg);
       transition: transform 0.3s ease;
     }
+
     .phaetus-nav-root .mobile-nav-item.open .arrow {
       transform: rotate(-180deg);
     }
+
+    /* Level 1 accordion panel */
     .phaetus-nav-root .mobile-submenu {
       max-height: 0;
       overflow: hidden;
       transition: max-height 0.35s ease;
     }
+
     .phaetus-nav-root .mobile-submenu.open {
       max-height: 2000px;
     }
+
+    /* Level 2 items */
     .phaetus-nav-root .mobile-category {
       padding: 14px 0 14px 16px;
       font-size: 16px;
@@ -940,12 +1097,14 @@
       user-select: none;
       text-decoration: none;
     }
+
     .phaetus-nav-root .mobile-category.active {
       color: var(--phaetus-secondary-nav-text-color);
       margin: 0 -24px;
       padding-left: 40px;
       padding-right: 24px;
     }
+
     .phaetus-nav-root .mobile-category .arrow {
       width: 18px;
       height: 18px;
@@ -955,23 +1114,33 @@
       transform: rotate(-90deg);
       transition: transform 0.3s ease;
     }
+
     .phaetus-nav-root .mobile-category.active .arrow {
       transform: rotate(-180deg);
     }
+
+    /*
+      Level 3 products are rendered per Level 2 category (structural change from static prototype).
+      In the static prototype all products sit in one shared .mobile-products block.
+      Here they are grouped under each .mobile-category so grandchild links map correctly.
+    */
     .phaetus-nav-root .mobile-cat-products {
       max-height: 0;
       overflow: hidden;
       transition: max-height 0.4s ease;
     }
+
     .phaetus-nav-root .mobile-cat-products.open {
       max-height: 2000px;
     }
+
     .phaetus-nav-root .mobile-products {
       padding: 16px 0;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
+
     .phaetus-nav-root .mobile-product-card {
       position: relative;
       display: flex;
@@ -985,17 +1154,21 @@
       text-decoration: none;
       color: inherit;
     }
+
     .phaetus-nav-root .mobile-product-card .product-card-tag {
       position: absolute;
       top: 0;
       z-index: 2;
     }
+
     .phaetus-nav-root .mobile-product-card .product-card-tag--nav {
       left: 0;
     }
+
     .phaetus-nav-root .mobile-product-card .product-card-tag--tips {
       right: 0;
     }
+
     .phaetus-nav-root .mobile-product-card .mobile-product-img {
       width: 135px;
       height: 135px;
@@ -1008,11 +1181,13 @@
       flex-shrink: 0;
       overflow: hidden;
     }
+
     .phaetus-nav-root .mobile-product-card .mobile-product-img img {
       width: 100%;
       height: 100%;
       object-fit: contain;
     }
+
     .phaetus-nav-root .mobile-product-info {
       display: flex;
       flex-direction: column;
@@ -1021,12 +1196,14 @@
       min-width: 0;
       justify-content: center;
     }
+
     .phaetus-nav-root .mobile-product-title {
       font-size: 16px;
       font-weight: 600;
       color: var(--color-bc-nav-black);
       line-height: 1.3;
     }
+
     .phaetus-nav-root .mobile-product-desc {
       font-size: 14px;
       font-weight: 400;
@@ -1034,15 +1211,32 @@
       line-height: 1.4;
     }
   }
+
+  /* ==========================================================================
+     THEME OVERRIDE (global, intentionally NOT scoped to .phaetus-nav-root)
+     --------------------------------------------------------------------------
+     The host theme's <cart-drawer> custom element (shown as CART-DRAWER in
+     devtools) defaults to position: static, so even while hidden it still
+     occupies space in normal flow. After the default theme header is hidden,
+     this leaves a large blank gap. Forcing it out of normal flow removes the
+     whitespace without breaking the drawer's open/close behavior (the inner
+     .drawer / .active state keeps its own fixed positioning).
+
+     NOTE: if your theme uses a different tag/class for this element, change the
+     selector below accordingly.
+     ========================================================================== */
   cart-drawer {
     position: fixed !important;
     top: 0;
     left: 0;
   }
+
+  /* Inactive (closed) drawer must not be interactable or reserve space. */
   cart-drawer:not(.active) {
     width: 0 !important;
     height: 0 !important;
     overflow: hidden !important;
     pointer-events: none !important;
   }
+
 }

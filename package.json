@@ -44,6 +44,7 @@
   "devDependencies": {
     "@shopify/api-codegen-preset": "^1.2.0",
     "@shopify/polaris-types": "^1.0.1",
+    "@tailwindcss/cli": "^4.3.1",
     "@types/eslint": "^9.6.1",
     "@types/node": "^22.18.8",
     "@types/react": "^18.3.25",
@@ -59,6 +60,7 @@
     "graphql-config": "^5.1.1",
     "happy-dom": "^20.10.6",
     "prettier": "^3.6.2",
+    "tailwindcss": "^4.3.1",
     "typescript": "^5.9.3",
     "vite": "^6.3.6",
     "vitest": "^4.1.9"

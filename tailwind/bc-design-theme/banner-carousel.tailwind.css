@@ -1,0 +1,268 @@
+@layer theme, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@reference "tailwindcss";
+
+@theme {
+  --color-bc-banner-black: oklch(0% 0 0);
+  --color-bc-banner-white: oklch(100% 0 0);
+  --color-bc-banner-dark: oklch(17.76% 0 0);
+}
+
+@layer components {
+  .bc-banner-carousel {
+    @apply block relative z-[1] w-screen max-w-[100vw] overflow-hidden bg-bc-banner-black;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    aspect-ratio: var(--bc-banner-aspect-ratio, 2.4 / 1);
+  }
+
+  .bc-banner-carousel__track {
+    @apply flex w-full h-full will-change-transform transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)];
+  }
+
+  .bc-banner-carousel__nav {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0 opacity-0 pointer-events-none;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .bc-banner-carousel__nav svg {
+    @apply hidden;
+  }
+
+  @media (hover: hover) {
+    .bc-banner-carousel--cursor-prev {
+      cursor: var(--bc-cursor-nav-prev);
+    }
+
+    .bc-banner-carousel--cursor-next {
+      cursor: var(--bc-cursor-nav-next);
+    }
+
+    .bc-banner-carousel--cursor-prev a,
+    .bc-banner-carousel--cursor-prev button,
+    .bc-banner-carousel--cursor-next a,
+    .bc-banner-carousel--cursor-next button {
+      @apply cursor-pointer;
+    }
+  }
+
+  .bc-banner-carousel__indicators {
+    @apply absolute left-1/2 z-[4] flex items-center justify-center -translate-x-1/2;
+    bottom: clamp(20px, 3.333vw, 40px);
+    gap: clamp(8px, 0.694vw, 20px);
+  }
+
+  .bc-banner-carousel__indicator {
+    @apply relative p-0 overflow-hidden border-0 rounded-full cursor-pointer bg-bc-banner-white/30;
+    width: clamp(40px, 2.778vw, 80px);
+    height: clamp(3px, 0.278vw, 8px);
+  }
+
+  .bc-banner-carousel__indicator::before {
+    content: none;
+  }
+
+  .bc-banner-carousel__indicator-progress {
+    @apply absolute inset-0 block bg-bc-banner-white opacity-0 -translate-x-full;
+  }
+
+  .bc-banner-carousel__indicator.is-active .bc-banner-carousel__indicator-progress {
+    @apply opacity-100;
+  }
+
+  .bc-banner-carousel__indicator.is-active:not(.is-autoplaying) .bc-banner-carousel__indicator-progress {
+    @apply translate-x-0;
+  }
+
+  .bc-banner-carousel__indicator.is-active {
+    width: clamp(60px, 4.167vw, 120px);
+  }
+
+  .bc-banner-slide {
+    @apply relative min-w-full h-full overflow-hidden;
+    --bc-overlay-bg: rgb(0 0 0 / var(--bc-banner-overlay-opacity, 0.2));
+    --bc-slide-text-color: var(--color-bc-banner-white);
+    --bc-button-bg: var(--color-bc-banner-white);
+    --bc-button-text: var(--color-bc-banner-black);
+  }
+
+  .bc-banner-slide[hidden] {
+    @apply hidden;
+  }
+
+  .bc-banner-slide__media {
+    @apply absolute inset-0 z-0;
+  }
+
+  .bc-banner-slide__image,
+  .bc-banner-slide__video,
+  .bc-banner-slide__placeholder {
+    @apply block w-full h-full object-cover object-center;
+  }
+
+  .bc-banner-slide__overlay {
+    @apply absolute inset-0 transition-colors duration-300;
+    background: var(--bc-overlay-bg);
+  }
+
+  .bc-banner-slide__content {
+    @apply relative z-[2] flex h-full flex-col justify-center transition-colors duration-300;
+    width: min(31.4vw, 904px);
+    margin-left: 13.889%;
+    color: var(--bc-slide-text-color);
+  }
+
+  .bc-banner-slide__heading {
+    @apply m-0 font-normal leading-none tracking-normal whitespace-nowrap;
+    color: inherit;
+    font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: clamp(48px, 4.167vw, 120px);
+  }
+
+  .bc-banner-slide__subheading {
+    @apply font-normal whitespace-nowrap;
+    margin: clamp(10px, 0.694vw, 20px) 0 0;
+    color: inherit;
+    font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: clamp(22px, 1.806vw, 52px);
+    line-height: 1.2;
+  }
+
+  .bc-banner-slide__buttons {
+    @apply flex items-center;
+    gap: clamp(16px, 1.389vw, 40px);
+    margin-top: clamp(32px, 2.778vw, 80px);
+  }
+
+  .bc-banner-slide__button {
+    @apply inline-flex items-center justify-center rounded-full font-normal leading-none text-center no-underline whitespace-nowrap transition-[transform,opacity] duration-200;
+    min-width: clamp(132px, 9.236vw, 266px);
+    min-height: clamp(54px, 3.75vw, 108px);
+    padding: 0 clamp(28px, 2.083vw, 60px);
+    font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: clamp(16px, 1.111vw, 32px);
+  }
+
+  .bc-banner-slide__button:hover {
+    @apply opacity-[0.88] -translate-y-px;
+  }
+
+  .bc-banner-slide__button--primary {
+    background: var(--bc-button-bg);
+    border-color: var(--bc-button-bg);
+    color: var(--bc-button-text);
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .bc-banner-slide__button--secondary {
+    @apply bg-transparent;
+    border: 2px solid var(--bc-button-bg);
+    color: var(--bc-slide-text-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  @media (max-width: 989px) {
+    .bc-banner-slide__content {
+      width: min(70vw, 620px);
+      margin-left: 8%;
+    }
+
+    .bc-banner-slide__heading,
+    .bc-banner-slide__subheading {
+      @apply whitespace-normal;
+    }
+  }
+
+  @media (max-width: 749px) {
+    .bc-banner-carousel {
+      aspect-ratio: auto;
+      height: var(--bc-banner-mobile-height, 500px);
+    }
+
+    .bc-banner-carousel__indicators {
+      @apply gap-2;
+      bottom: 12px;
+    }
+
+    .bc-banner-carousel__indicator {
+      @apply w-10 h-1;
+    }
+
+    .bc-banner-carousel__indicator.is-active {
+      @apply w-[60px];
+    }
+
+    .bc-banner-slide__content {
+      @apply w-full m-0 justify-end text-center;
+      padding: 0 24px 40px;
+    }
+
+    .bc-banner-slide__heading {
+      @apply leading-none text-center;
+      font-size: clamp(30px, 8.7vw, 35px);
+    }
+
+    .bc-banner-slide__subheading {
+      @apply mt-3 text-lg text-center;
+      line-height: 1.2;
+    }
+
+    .bc-banner-slide__buttons {
+      @apply flex-nowrap justify-center w-fit;
+      gap: 10px;
+      margin: 20px auto 0;
+    }
+
+    .bc-banner-slide__button {
+      @apply box-border w-[93px] h-[42px] overflow-hidden text-ellipsis;
+      padding: 0 20px;
+      font-size: 16px;
+    }
+
+    .bc-banner-slide__button--secondary {
+      @apply border;
+    }
+  }
+
+  @media screen and (min-width: 750px) {
+    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-black {
+      --bc-overlay-bg: rgb(0 0 0 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-desktop-opacity, 0.3)));
+    }
+
+    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-white {
+      --bc-overlay-bg: rgb(255 255 255 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-desktop-opacity, 0.3)));
+      --bc-slide-text-color: var(--bc-banner-adaptive-dark-text-color, var(--color-bc-banner-dark));
+      --bc-button-bg: var(--bc-banner-adaptive-dark-button-background, var(--color-bc-banner-dark));
+      --bc-button-text: var(--bc-banner-adaptive-dark-button-text, var(--color-bc-banner-white));
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-black {
+      --bc-overlay-bg: rgb(0 0 0 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-mobile-opacity, 0.3)));
+    }
+
+    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-white {
+      --bc-overlay-bg: rgb(255 255 255 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-mobile-opacity, 0.3)));
+      --bc-slide-text-color: var(--bc-banner-adaptive-dark-text-color, var(--color-bc-banner-dark));
+      --bc-button-bg: var(--bc-banner-adaptive-dark-button-background, var(--color-bc-banner-dark));
+      --bc-button-text: var(--bc-banner-adaptive-dark-button-text, var(--color-bc-banner-white));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bc-banner-carousel__track {
+      @apply transition-none;
+    }
+  }
+
+  .bc-banner-slide-host--empty {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+}
