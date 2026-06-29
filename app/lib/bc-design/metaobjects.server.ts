@@ -359,10 +359,10 @@ function parseBannerSlide(node: ChildMetaobjectNode): BannerSlideConfig {
     secondaryButtonLabel: textValue(fields.get("secondary_button_label")),
     secondaryButtonLink: textValue(fields.get("secondary_button_link")),
     desktopAverageBrightness: numberValue(fields.get("desktop_average_brightness"), 0),
-    desktopAdaptiveOverlayVariant: textValue(fields.get("desktop_adaptive_overlay_variant"), "black"),
+    desktopAdaptiveOverlayVariant: textValue(fields.get("desktop_adaptive_overlay_variant"), "black") as "black" | "white",
     desktopAdaptiveOverlayOpacity: numberValue(fields.get("desktop_adaptive_overlay_opacity"), 30),
     mobileAverageBrightness: numberValue(fields.get("mobile_average_brightness"), 0),
-    mobileAdaptiveOverlayVariant: textValue(fields.get("mobile_adaptive_overlay_variant"), "black"),
+    mobileAdaptiveOverlayVariant: textValue(fields.get("mobile_adaptive_overlay_variant"), "black") as "black" | "white",
     mobileAdaptiveOverlayOpacity: numberValue(fields.get("mobile_adaptive_overlay_opacity"), 30),
   };
 }

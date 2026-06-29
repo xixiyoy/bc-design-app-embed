@@ -33,7 +33,9 @@ import { createShopifyFileFromUpload } from "../lib/bc-design/files.server";
 import {
   loadBannerConfig,
   saveBannerConfig,
-} from "../lib/bc-design/metaobjects.server";
+  GET_FILE_DETAILS,
+  extractFilename,
+} from "../lib/bc-design/config.server";
 import { authenticate } from "../shopify.server";
 import { calculateImageBrightness } from "../lib/bc-design/image-brightness.client";
 
@@ -228,9 +230,30 @@ async function mergeUploadedSlideFiles(
       const uploadedFile = formData.get(`slides.${index}.${field}`);
       if (uploadedFile instanceof File && uploadedFile.size > 0) {
         const result = await createShopifyFileFromUpload(admin, uploadedFile);
-        slide[field] = result.id;
-      } else if (!slide[field]) {
+        if (field === "video") {
+          slide.video = result.id;
+          slide.videoFileUrl = result.url; // Shopify CDN URL
+          
+          // Fetch poster preview image using shared GraphQL query from config.server
+          try {
+            const previewResult = await adminGraphql<any>(admin, GET_FILE_DETAILS, { ids: [result.id] });
+            const fileNode = previewResult?.nodes?.[0];
+            slide.videoPosterUrl = fileNode?.preview?.image?.url || "";
+          } catch (e) {
+            console.warn("Failed to retrieve video poster image URL during upload", e);
+          }
+        } else {
+          slide[field] = result.id;
+          slide[`${field}Filename`] = extractFilename(result.url);
+        }
+      } else if (field === "video" ? !slide.video : !slide[field]) { // Preserved condition guard
         slide[field] = previousSlide?.[field];
+        if (field === "video") {
+          slide.videoFileUrl = previousSlide?.videoFileUrl;
+          slide.videoPosterUrl = previousSlide?.videoPosterUrl;
+        } else {
+          slide[`${field}Filename`] = previousSlide?.[`${field}Filename` as keyof typeof previousSlide] as string | undefined;
+        }
       }
     }
   }
@@ -264,8 +287,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const previous = await loadBannerConfig(admin);
   const config = parseBannerConfigPayload(configRaw, previous);
   await mergeUploadedSlideFiles(admin, formData, config, previous);
-  const saved = await saveBannerConfig(admin, config, previous);
-  return { intent, ok: true, message: "Banner saved.", config: saved };
+  const saved = await saveBannerConfig(admin, config);
+  return { intent, ok: true, message: "Banner saved.", config };
 };
 
 type BannerFormState = BannerConfig;

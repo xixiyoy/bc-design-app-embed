@@ -23,7 +23,6 @@ import {
   isLogoType,
   isNavigationLayoutType,
   NAVIGATION_LAYOUT_TYPES,
-  missingMetaobjectDefinitionsMessage,
   sanitizeNavigationSecondLevelConfig,
   type NavigationConfig,
   type NavigationSecondLevelConfig,
@@ -35,10 +34,10 @@ import {
   type ShopifyMenuItem,
 } from "../lib/bc-design/menus.server";
 import {
-  getMissingBcDesignMetaobjectDefinitions,
   loadNavigationConfig,
   saveNavigationConfig,
-} from "../lib/bc-design/metaobjects.server";
+  extractFilename,
+} from "../lib/bc-design/config.server";
 import { ensureProductBadgeMetafieldDefinitions } from "../lib/bc-design/product-badges.server";
 import { authenticate } from "../shopify.server";
 
@@ -258,8 +257,10 @@ async function mergeUploadedFiles(
   if (logoFile instanceof File && logoFile.size > 0) {
     const uploaded = await createShopifyFileFromUpload(admin, logoFile);
     config.logoFile = uploaded.id;
-  } else if (!config.logoFile) {
+    config.logoFileFilename = extractFilename(uploaded.url);
+  } else if (!config.logoFile) { // Preserved condition guard
     config.logoFile = previous.logoFile;
+    config.logoFileFilename = previous.logoFileFilename;
   }
 
   for (const [index, child] of config.secondLevelConfigs.entries()) {
@@ -281,8 +282,10 @@ async function mergeUploadedFiles(
       if (uploadedFile instanceof File && uploadedFile.size > 0) {
         const result = await createShopifyFileFromUpload(admin, uploadedFile);
         child[field] = result.id;
-      } else if (!child[field]) {
+        child[`${field}Filename`] = extractFilename(result.url);
+      } else if (!child[field]) { // Preserved condition guard
         child[field] = previousChild?.[field];
+        child[`${field}Filename`] = previousChild?.[`${field}Filename` as keyof typeof previousChild] as string;
       }
     }
   }
@@ -290,17 +293,16 @@ async function mergeUploadedFiles(
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
-  const [config, menus, missingMetaobjectDefinitions] = await Promise.all([
+  const [config, menus] = await Promise.all([
     loadNavigationConfig(admin),
     loadMenus(admin),
-    getMissingBcDesignMetaobjectDefinitions(admin),
   ]);
   const filePreviewUrls = await resolveFilePreviewUrls(
     admin,
     collectFileGids(config),
   );
 
-  return { config, menus, filePreviewUrls, missingMetaobjectDefinitions };
+  return { config, menus, filePreviewUrls };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -320,16 +322,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     try {
-      const missingDefinitions =
-        await getMissingBcDesignMetaobjectDefinitions(admin);
-      if (missingDefinitions.length > 0) {
-        return {
-          intent,
-          ok: false,
-          message: missingMetaobjectDefinitionsMessage(missingDefinitions),
-        };
-      }
-
       const previous = await loadNavigationConfig(admin);
       const config = parseNavigationConfigPayload(configRaw);
       config.secondLevelConfigs = config.secondLevelConfigs.map(
@@ -339,8 +331,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       config.secondLevelConfigs = config.secondLevelConfigs.map(
         sanitizeNavigationSecondLevelConfig,
       );
-      const saved = await saveNavigationConfig(admin, config, previous);
-      return { intent, ok: true, message: "Navigation saved.", config: saved };
+      const saved = await saveNavigationConfig(admin, config);
+      return { intent, ok: true, message: "Navigation saved.", config };
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to save navigation.";
@@ -370,7 +362,7 @@ function buildInitialFormState(
 }
 
 export default function NavigationPage() {
-  const { config, menus, filePreviewUrls, missingMetaobjectDefinitions } =
+  const { config, menus, filePreviewUrls } =
     useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const revalidator = useRevalidator();
@@ -665,13 +657,6 @@ export default function NavigationPage() {
         Set up product badges
       </s-button>
 
-      {missingMetaobjectDefinitions.length > 0 ? (
-        <s-section>
-          <s-banner tone="warning" heading="App data definitions missing">
-            {missingMetaobjectDefinitionsMessage(missingMetaobjectDefinitions)}
-          </s-banner>
-        </s-section>
-      ) : null}
 
       <s-section heading="Navigation settings">
         <s-stack direction="block" gap="base">
