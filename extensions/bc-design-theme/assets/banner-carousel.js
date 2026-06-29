@@ -31,6 +31,7 @@ class BcBannerCarousel extends HTMLElement {
       this.style.setProperty('--bc-banner-progress-duration', `${this.autoplaySpeed}ms`);
       this.createIndicators();
       this.setupNavigation();
+      this.setupCursorNavigation();
       this.bindEvents();
       this.goTo(0);
       this.startAutoplay();
@@ -114,6 +115,71 @@ class BcBannerCarousel extends HTMLElement {
     if (this.nextButton) {
       this.__bcAddListener(this.nextButton, 'click', () => this.next());
     }
+  }
+
+  isInteractiveTarget(target) {
+    return Boolean(target.closest('a, button, video'));
+  }
+
+  getBannerCenterX() {
+    const rect = this.getBoundingClientRect();
+    return rect.left + rect.width / 2;
+  }
+
+  isLeftOfBannerCenter(clientX) {
+    return clientX < this.getBannerCenterX();
+  }
+
+  setupCursorNavigation() {
+    if (this.slides.length <= 1 || !window.matchMedia('(hover: hover)').matches) return;
+
+    let cursorRafId = null;
+    let pendingClientX = null;
+
+    const updateCursor = (clientX) => {
+      const isLeft = this.isLeftOfBannerCenter(clientX);
+      this.classList.toggle('bc-banner-carousel--cursor-prev', isLeft);
+      this.classList.toggle('bc-banner-carousel--cursor-next', !isLeft);
+    };
+
+    const onMouseMove = (event) => {
+      if (this.isInteractiveTarget(event.target)) {
+        this.classList.remove('bc-banner-carousel--cursor-prev', 'bc-banner-carousel--cursor-next');
+        return;
+      }
+
+      pendingClientX = event.clientX;
+      if (cursorRafId) return;
+
+      cursorRafId = requestAnimationFrame(() => {
+        cursorRafId = null;
+        if (pendingClientX === null) return;
+        updateCursor(pendingClientX);
+        pendingClientX = null;
+      });
+    };
+
+    const onMouseLeave = () => {
+      if (cursorRafId) {
+        cancelAnimationFrame(cursorRafId);
+        cursorRafId = null;
+      }
+      pendingClientX = null;
+      this.classList.remove('bc-banner-carousel--cursor-prev', 'bc-banner-carousel--cursor-next');
+    };
+
+    const onClick = (event) => {
+      if (this.isInteractiveTarget(event.target)) return;
+      if (this.isLeftOfBannerCenter(event.clientX)) {
+        this.previous();
+      } else {
+        this.next();
+      }
+    };
+
+    this.__bcAddListener(this, 'mousemove', onMouseMove);
+    this.__bcAddListener(this, 'mouseleave', onMouseLeave);
+    this.__bcAddListener(this, 'click', onClick);
   }
 
   isAutoplayEnabled() {
