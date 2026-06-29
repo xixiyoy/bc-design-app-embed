@@ -37,6 +37,8 @@ if (host === "localhost") {
 
 export default defineConfig({
   server: {
+    // Listen on IPv4 and IPv6 so Shopify CLI proxy (::1) can reach the dev server.
+    host: true,
     allowedHosts: [host],
     cors: {
       preflightContinue: true,

@@ -4,4 +4,5 @@ webhooks_path = "/webhooks/app/uninstalled"
 
 [commands]
 predev = "npx prisma generate && npx tailwindcss -i ./tailwind/bc-design-theme/banner-carousel.tailwind.css -o ./extensions/bc-design-theme/assets/banner-carousel.css --minify && npx tailwindcss -i ./tailwind/bc-design-theme/navigation-menu.tailwind.css -o ./extensions/bc-design-theme/assets/navigation-menu.css --minify"
-dev = "npx tailwindcss -i ./tailwind/bc-design-theme/banner-carousel.tailwind.css -o ./extensions/bc-design-theme/assets/banner-carousel.css --watch --minify & npx tailwindcss -i ./tailwind/bc-design-theme/navigation-menu.tailwind.css -o ./extensions/bc-design-theme/assets/navigation-menu.css --watch --minify & npx prisma migrate deploy && npm exec react-router dev"
+# Shopify CLI does not run this through a shell; use npm run so `&` / `&&` work.
+dev = "npm run dev:web"
