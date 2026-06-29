@@ -22,29 +22,32 @@
   }
 
   .bc-banner-carousel__nav {
-    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0 opacity-0 pointer-events-none;
-    clip: rect(0, 0, 0, 0);
+    @apply absolute top-1/2 z-[3] flex items-center justify-center -translate-y-1/2;
+    @apply w-10 h-10 p-0 border-0 rounded-full cursor-pointer;
+    @apply bg-bc-banner-black/30 text-bc-banner-white;
+    @apply transition-[background-color,opacity] duration-200;
+    @apply pointer-events-auto;
+  }
+
+  .bc-banner-carousel__nav:hover,
+  .bc-banner-carousel__nav:focus-visible {
+    @apply bg-bc-banner-black/50 outline-none;
+  }
+
+  .bc-banner-carousel__nav--prev {
+    left: clamp(16px, 2.778vw, 40px);
+  }
+
+  .bc-banner-carousel__nav--next {
+    right: clamp(16px, 2.778vw, 40px);
   }
 
   .bc-banner-carousel__nav svg {
-    @apply hidden;
+    @apply block w-6 h-6;
   }
 
-  @media (hover: hover) {
-    .bc-banner-carousel--cursor-prev {
-      cursor: var(--bc-cursor-nav-prev);
-    }
-
-    .bc-banner-carousel--cursor-next {
-      cursor: var(--bc-cursor-nav-next);
-    }
-
-    .bc-banner-carousel--cursor-prev a,
-    .bc-banner-carousel--cursor-prev button,
-    .bc-banner-carousel--cursor-next a,
-    .bc-banner-carousel--cursor-next button {
-      @apply cursor-pointer;
-    }
+  .bc-banner-carousel__nav[hidden] {
+    @apply hidden;
   }
 
   .bc-banner-carousel__indicators {
@@ -178,6 +181,22 @@
     .bc-banner-carousel {
       aspect-ratio: auto;
       height: var(--bc-banner-mobile-height, 500px);
+    }
+
+    .bc-banner-carousel__nav {
+      @apply w-9 h-9;
+    }
+
+    .bc-banner-carousel__nav svg {
+      @apply w-5 h-5;
+    }
+
+    .bc-banner-carousel__nav--prev {
+      left: 12px;
+    }
+
+    .bc-banner-carousel__nav--next {
+      right: 12px;
     }
 
     .bc-banner-carousel__indicators {
