@@ -77,6 +77,7 @@ class BcBannerCarousel extends HTMLElement {
     }
 
     this.indicatorsContainer.textContent = '';
+    this.indicatorsContainer.hidden = false;
     this.indicators = this.slides.map((slide, slideIndex) => {
       const button = document.createElement('button');
       button.className = 'bc-banner-carousel__indicator';
@@ -199,6 +200,14 @@ class BcBannerCarousel extends HTMLElement {
     return this.indicators?.[this.index]?.querySelector('.bc-banner-carousel__indicator-progress') ?? null;
   }
 
+  resetProgressElement(progress) {
+    if (!progress) return;
+    if (typeof progress.getAnimations === 'function') {
+      progress.getAnimations().forEach((animation) => animation.cancel());
+    }
+    progress.style.transform = '';
+  }
+
   cancelProgressAnimation() {
     if (this.progressAnimation) {
       this.progressAnimation.cancel();
@@ -218,7 +227,7 @@ class BcBannerCarousel extends HTMLElement {
     activeIndicator?.classList.add('is-autoplaying');
 
     this.progressAnimation = progress.animate(
-      [{ transform: 'translateX(-100%)' }, { transform: 'translateX(0)' }],
+      [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
       { duration: this.autoplaySpeed, fill: 'forwards', easing: 'linear' }
     );
 
@@ -254,6 +263,9 @@ class BcBannerCarousel extends HTMLElement {
 
     this.indicators?.forEach((indicator) => {
       indicator.classList.remove('is-autoplaying');
+      this.resetProgressElement(
+        indicator.querySelector('.bc-banner-carousel__indicator-progress')
+      );
     });
 
     if (!this.isAutoplayEnabled()) return;

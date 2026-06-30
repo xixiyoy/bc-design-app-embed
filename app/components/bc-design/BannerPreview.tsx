@@ -130,6 +130,28 @@ export function BannerPreview({ config, computationStates }: BannerPreviewProps)
           </div>
         ) : null}
       </div>
+
+      {config.showIndicators && config.slides.length > 1 ? (
+        <div
+          className="bc-banner-carousel__indicators"
+          aria-label="Banner carousel pagination"
+        >
+          {config.slides.map((slide, slideIndex) => (
+            <button
+              key={slide.id}
+              type="button"
+              className={`bc-banner-carousel__indicator${slideIndex === 0 ? " is-active" : ""}`}
+              aria-label={`Go to slide ${slideIndex + 1}`}
+              aria-current={slideIndex === 0}
+            >
+              <span
+                className="bc-banner-carousel__indicator-progress"
+                aria-hidden="true"
+              />
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

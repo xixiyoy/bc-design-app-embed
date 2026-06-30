@@ -68,6 +68,16 @@ describe('banner-carousel lifecycle', () => {
     vi.runAllTimers();
   });
 
+  it('creates progress bar elements for each indicator', () => {
+    const carousel = document.querySelector('banner-carousel');
+    const indicators = carousel.querySelectorAll('.bc-banner-carousel__indicator');
+
+    expect(indicators.length).toBe(2);
+    indicators.forEach((indicator) => {
+      expect(indicator.querySelector('.bc-banner-carousel__indicator-progress')).toBeTruthy();
+    });
+  });
+
   it('after DOM move, next button click advances exactly one slide', () => {
     const host = document.getElementById('host');
     const carousel = host.querySelector('banner-carousel');
