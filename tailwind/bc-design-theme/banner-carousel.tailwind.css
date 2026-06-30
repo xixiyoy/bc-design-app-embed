@@ -113,22 +113,6 @@
     color: var(--bc-slide-text-color);
   }
 
-  .bc-banner-slide__heading {
-    @apply m-0 font-normal leading-none tracking-normal whitespace-nowrap;
-    color: inherit;
-    font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: clamp(48px, 4.167vw, 120px);
-  }
-
-  .bc-banner-slide__subheading {
-    @apply font-normal whitespace-nowrap;
-    margin: clamp(10px, 0.694vw, 20px) 0 0;
-    color: inherit;
-    font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: clamp(22px, 1.806vw, 52px);
-    line-height: 1.2;
-  }
-
   .bc-banner-slide__buttons {
     @apply flex items-center;
     gap: clamp(16px, 1.389vw, 40px);
@@ -167,11 +151,6 @@
       width: min(70vw, 620px);
       margin-left: 8%;
     }
-
-    .bc-banner-slide__heading,
-    .bc-banner-slide__subheading {
-      @apply whitespace-normal;
-    }
   }
 
   @media (max-width: 749px) {
@@ -196,16 +175,6 @@
     .bc-banner-slide__content {
       @apply w-full m-0 justify-end text-center;
       padding: 0 24px 40px;
-    }
-
-    .bc-banner-slide__heading {
-      @apply leading-none text-center;
-      font-size: clamp(30px, 8.7vw, 35px);
-    }
-
-    .bc-banner-slide__subheading {
-      @apply mt-3 text-lg text-center;
-      line-height: 1.2;
     }
 
     .bc-banner-slide__buttons {
@@ -264,5 +233,55 @@
     min-height: 0 !important;
     height: 0 !important;
     overflow: hidden !important;
+  }
+}
+
+/* Unlayered typography overrides: Dawn theme h2/p rules sit outside @layer and win over layered components. */
+banner-carousel.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__heading,
+.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__heading {
+  margin: 0;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: normal;
+  white-space: nowrap;
+  color: var(--color-bc-banner-white);
+  font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: clamp(48px, calc(60 / 1440 * 100vw), 120px);
+}
+
+banner-carousel.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__subheading,
+.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__subheading {
+  margin: clamp(10px, 0.694vw, 20px) 0 0;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: inherit;
+  font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: clamp(22px, calc(26 / 1440 * 100vw), 52px);
+}
+
+@media (max-width: 989px) {
+  banner-carousel.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__heading,
+  .bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__heading,
+  banner-carousel.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__subheading,
+  .bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__subheading {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 749px) {
+  banner-carousel.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__heading,
+  .bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__heading {
+    line-height: 1;
+    text-align: center;
+    font-size: clamp(30px, 8.7vw, 35px);
+  }
+
+  banner-carousel.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__subheading,
+  .bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__subheading {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 1.125rem;
+    line-height: 1.2;
   }
 }

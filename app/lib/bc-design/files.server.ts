@@ -74,7 +74,35 @@ const FILE_CREATE = `#graphql
 `;
 
 function stagedUploadResource(mimeType: string) {
-  return mimeType.startsWith("image/") ? "IMAGE" : "FILE";
+  if (mimeType.startsWith("image/")) return "IMAGE";
+  if (mimeType.startsWith("video/")) return "VIDEO";
+  return "FILE";
+}
+
+function buildStagedUploadInput(file: File) {
+  const mimeType = file.type || "application/octet-stream";
+  const resource = stagedUploadResource(mimeType);
+  const input: {
+    filename: string;
+    mimeType: string;
+    resource: ReturnType<typeof stagedUploadResource>;
+    httpMethod: "POST";
+    fileSize?: number;
+  } = {
+    filename: file.name,
+    mimeType,
+    resource,
+    httpMethod: "POST",
+  };
+
+  if (resource === "VIDEO") {
+    if (!file.size) {
+      throw new Error("Video upload requires a non-zero file size.");
+    }
+    input.fileSize = file.size;
+  }
+
+  return input;
 }
 
 function fileUrlFromCreated(
@@ -93,19 +121,12 @@ export async function createShopifyFileFromUpload(
   admin: AdminGraphqlClient,
   file: File,
 ): Promise<{ id: string; url?: string }> {
-  const mimeType = file.type || "application/octet-stream";
+  const uploadInput = buildStagedUploadInput(file);
   const stagedData = await adminGraphql<StagedUploadsCreateData>(
     admin,
     STAGED_UPLOADS_CREATE,
     {
-      input: [
-        {
-          filename: file.name,
-          mimeType,
-          resource: stagedUploadResource(mimeType),
-          httpMethod: "POST",
-        },
-      ],
+      input: [uploadInput],
     },
   );
 
@@ -136,7 +157,7 @@ export async function createShopifyFileFromUpload(
     files: [
       {
         originalSource: stagedTarget.resourceUrl,
-        contentType: stagedUploadResource(mimeType),
+        contentType: uploadInput.resource,
       },
     ],
   });

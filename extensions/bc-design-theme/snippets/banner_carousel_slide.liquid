@@ -51,7 +51,20 @@
   {{ shopify_attributes }}
 >
   <div class="bc-banner-slide__media">
-    {%- if video_url != blank -%}
+    {%- if video_file_url != blank -%}
+      <video
+        class="bc-banner-slide__video"
+        src="{{ video_file_url | escape }}"
+        {% if video_poster_url != blank %}
+          poster="{{ video_poster_url | escape }}"
+        {% endif %}
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+      ></video>
+    {%- elsif video_url != blank -%}
       <video
         class="bc-banner-slide__video"
         src="{{ video_url | escape }}"
@@ -59,18 +72,7 @@
         muted
         loop
         playsinline
-        preload="metadata"
-      ></video>
-    {%- elsif video_file_url != blank -%}
-      <video
-        class="bc-banner-slide__video"
-        src="{{ video_file_url }}"
-        poster="{{ video_poster_url }}"
-        autoplay
-        muted
-        loop
-        playsinline
-        preload="metadata"
+        preload="auto"
       ></video>
     {%- elsif desktop_image_filename != blank -%}
       {%- if mobile_image_filename != blank -%}

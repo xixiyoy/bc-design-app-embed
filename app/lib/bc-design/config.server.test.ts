@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   extractFilename,
+  videoFileUrlFromNode,
   loadNavigationConfig,
   saveNavigationConfig,
   loadBannerConfig,
@@ -32,6 +33,25 @@ describe("extractFilename", () => {
   it("should return empty string if no url is provided", () => {
     expect(extractFilename(null)).toBe("");
     expect(extractFilename(undefined)).toBe("");
+  });
+});
+
+describe("videoFileUrlFromNode", () => {
+  it("prefers Video sources over GenericFile url", () => {
+    expect(
+      videoFileUrlFromNode({
+        sources: [{ url: "https://cdn.shopify.com/videos/a.mp4" }],
+        url: "https://cdn.shopify.com/files/a.mp4",
+      }),
+    ).toBe("https://cdn.shopify.com/videos/a.mp4");
+  });
+
+  it("falls back to GenericFile url", () => {
+    expect(
+      videoFileUrlFromNode({
+        url: "https://cdn.shopify.com/files/a.mp4",
+      }),
+    ).toBe("https://cdn.shopify.com/files/a.mp4");
   });
 });
 
@@ -323,6 +343,62 @@ describe("loadBannerConfig", () => {
     expect(config.slides[0].videoFileUrl).toBe("https://cdn.shopify.com/videos/999.mp4");
     expect(config.slides[0].videoPosterUrl).toBe("https://cdn.shopify.com/videos/999_poster.jpg");
     expect(adminGraphql).toHaveBeenCalledTimes(4);
+  });
+
+  it("should resolve GenericFile video urls for slides missing videoFileUrl", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: {
+        id: "gid://shopify/AppInstallation/1",
+        banner: {
+          jsonValue: {
+            autoplay: true,
+            autoplaySpeed: 5,
+            slides: [
+              {
+                id: "slide-1",
+                video: "gid://shopify/GenericFile/123",
+                heading: "Heading",
+              },
+            ],
+            migrationCompleted: true,
+          },
+        },
+      },
+    });
+
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "gid://shopify/GenericFile/123",
+          fileStatus: "READY",
+          url: "https://cdn.shopify.com/files/banner.mp4",
+          preview: {
+            image: { url: "https://cdn.shopify.com/files/banner_poster.jpg" },
+          },
+        },
+      ],
+    });
+
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: {
+        id: "gid://shopify/AppInstallation/1",
+      },
+    });
+
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      metafieldsSet: {
+        metafields: [{ key: "banner_config", value: "some-value" }],
+        userErrors: [],
+      },
+    });
+
+    const config = await loadBannerConfig({} as any);
+    expect(config.slides[0].videoFileUrl).toBe(
+      "https://cdn.shopify.com/files/banner.mp4",
+    );
+    expect(config.slides[0].videoPosterUrl).toBe(
+      "https://cdn.shopify.com/files/banner_poster.jpg",
+    );
   });
 
   it("should progressively resolve missing image filenames from file GIDs", async () => {

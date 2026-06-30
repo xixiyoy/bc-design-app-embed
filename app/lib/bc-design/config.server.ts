@@ -17,6 +17,18 @@ export function extractFilename(url?: string | null): string {
   return filename ? decodeURIComponent(filename) : "";
 }
 
+type FileNodeWithVideoUrl = {
+  id?: string;
+  fileStatus?: string;
+  url?: string | null;
+  sources?: Array<{ url?: string | null }> | null;
+  preview?: { image?: { url?: string | null } | null } | null;
+};
+
+export function videoFileUrlFromNode(node: FileNodeWithVideoUrl): string | undefined {
+  return node.sources?.[0]?.url ?? node.url ?? undefined;
+}
+
 export const GET_CONFIG_QUERY = `#graphql
   query BcDesignGetConfig {
     currentAppInstallation {
@@ -72,6 +84,16 @@ export const GET_FILE_DETAILS = `#graphql
         sources {
           url
         }
+        preview {
+          image {
+            url
+          }
+        }
+      }
+      ... on GenericFile {
+        id
+        fileStatus
+        url
         preview {
           image {
             url
@@ -201,6 +223,43 @@ async function resolveNavigationImageFilenames(
     }
   } catch (e) {
     console.warn("Failed to resolve navigation image filenames", e);
+  }
+
+  return needsSave;
+}
+
+export async function resolvePendingBannerVideoUrls(
+  admin: AdminGraphqlClient,
+  config: BannerConfig,
+): Promise<boolean> {
+  const pendingVideoGids = config.slides
+    .filter((s) => s.video && (!s.videoFileUrl || s.videoPosterUrl === undefined))
+    .map((s) => s.video as string);
+
+  if (pendingVideoGids.length === 0) return false;
+
+  let needsSave = false;
+  try {
+    const filesData = await adminGraphql<any>(admin, GET_FILE_DETAILS, {
+      ids: pendingVideoGids,
+    });
+    for (const node of filesData.nodes || []) {
+      if (!node) continue;
+      if (node.fileStatus === "READY") {
+        const slide = config.slides.find((s) => s.video === node.id);
+        if (slide) {
+          const resolvedVideoUrl = videoFileUrlFromNode(node);
+          if (resolvedVideoUrl) {
+            slide.videoFileUrl = resolvedVideoUrl;
+            needsSave = true;
+          }
+          slide.videoPosterUrl = node.preview?.image?.url || "";
+          needsSave = true;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to progressively query READY video files", e);
   }
 
   return needsSave;
@@ -337,7 +396,8 @@ export async function loadBannerConfig(admin: AdminGraphqlClient): Promise<Banne
           for (const node of filesData.nodes || []) {
             if (!node) continue; // Null check to prevent TypeError
             if (node.preview?.image?.url) fileUrls[node.id] = node.preview.image.url;
-            if (node.sources?.[0]?.url) videoSources[node.id] = node.sources[0].url;
+            const resolvedVideoUrl = videoFileUrlFromNode(node);
+            if (resolvedVideoUrl) videoSources[node.id] = resolvedVideoUrl;
           }
         }
 
@@ -367,31 +427,8 @@ export async function loadBannerConfig(admin: AdminGraphqlClient): Promise<Banne
     }
   }
 
-  // Progressive check: Retrieve poster URL / CDN url for processing videos
-  const pendingVideoGids = config.slides
-    .filter((s) => s.video && (!s.videoFileUrl || s.videoPosterUrl === undefined))
-    .map((s) => s.video as string);
-
-  if (pendingVideoGids.length > 0) {
-    try {
-      const filesData = await adminGraphql<any>(admin, GET_FILE_DETAILS, { ids: pendingVideoGids });
-      for (const node of filesData.nodes || []) {
-        if (!node) continue; // Null check to prevent TypeError
-        if (node.fileStatus === "READY") {
-          const slide = config.slides.find((s) => s.video === node.id);
-          if (slide) {
-            if (node.sources?.[0]?.url) {
-              slide.videoFileUrl = node.sources[0].url;
-              needsSave = true;
-            }
-            slide.videoPosterUrl = node.preview?.image?.url || "";
-            needsSave = true;
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("Failed to progressively query READY video files", e);
-    }
+  if (await resolvePendingBannerVideoUrls(admin, config)) {
+    needsSave = true;
   }
 
   if (await resolveBannerSlideImageFilenames(admin, config)) {
@@ -406,6 +443,7 @@ export async function loadBannerConfig(admin: AdminGraphqlClient): Promise<Banne
 }
 
 export async function saveBannerConfig(admin: AdminGraphqlClient, config: BannerConfig): Promise<void> {
+  await resolvePendingBannerVideoUrls(admin, config);
   await resolveBannerSlideImageFilenames(admin, config);
   const idData = await adminGraphql<{ currentAppInstallation: { id: string } }>(admin, GET_APP_ID_QUERY);
   const ownerId = idData.currentAppInstallation.id;
