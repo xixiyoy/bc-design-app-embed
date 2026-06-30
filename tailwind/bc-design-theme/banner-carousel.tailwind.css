@@ -81,10 +81,6 @@
 
   .bc-banner-slide {
     @apply relative min-w-full h-full overflow-hidden;
-    --bc-overlay-bg: rgb(0 0 0 / var(--bc-banner-overlay-opacity, 0.2));
-    --bc-slide-text-color: var(--color-bc-banner-white);
-    --bc-button-bg: var(--color-bc-banner-white);
-    --bc-button-text: var(--color-bc-banner-black);
   }
 
   .bc-banner-slide[hidden] {
@@ -101,16 +97,16 @@
     @apply block w-full h-full object-cover object-center;
   }
 
-  .bc-banner-slide__overlay {
-    @apply absolute inset-0 transition-colors duration-300;
-    background: var(--bc-overlay-bg);
+  .bc-banner-slide__media.bc-banner-slide__overlay::after {
+    content: "";
+    @apply absolute inset-0 transition-colors duration-300 pointer-events-none;
+    background: rgb(0 0 0 / var(--bc-banner-overlay-opacity, 0.2));
   }
 
   .bc-banner-slide__content {
-    @apply relative z-[2] flex h-full flex-col justify-center transition-colors duration-300;
+    @apply relative z-[2] flex h-full flex-col justify-center;
     width: min(31.4vw, 904px);
     margin-left: 13.889%;
-    color: var(--bc-slide-text-color);
   }
 
   .bc-banner-slide__buttons {
@@ -133,17 +129,15 @@
   }
 
   .bc-banner-slide__button--primary {
-    background: var(--bc-button-bg);
-    border-color: var(--bc-button-bg);
-    color: var(--bc-button-text);
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease, opacity 0.2s ease;
+    @apply bg-bc-banner-white text-bc-banner-black;
+    border-color: var(--color-bc-banner-white);
+    transition: transform 0.2s ease, opacity 0.2s ease;
   }
 
   .bc-banner-slide__button--secondary {
-    @apply bg-transparent;
-    border: 2px solid var(--bc-button-bg);
-    color: var(--bc-slide-text-color);
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease, opacity 0.2s ease;
+    @apply bg-transparent text-bc-banner-white;
+    border: 2px solid var(--color-bc-banner-white);
+    transition: transform 0.2s ease, opacity 0.2s ease;
   }
 
   @media (max-width: 989px) {
@@ -195,28 +189,22 @@
   }
 
   @media screen and (min-width: 750px) {
-    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-black {
-      --bc-overlay-bg: rgb(0 0 0 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-desktop-opacity, 0.3)));
+    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-black .bc-banner-slide__media.bc-banner-slide__overlay::after {
+      background: rgb(0 0 0 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-desktop-opacity, 0.3)));
     }
 
-    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-white {
-      --bc-overlay-bg: rgb(255 255 255 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-desktop-opacity, 0.3)));
-      --bc-slide-text-color: var(--bc-banner-adaptive-dark-text-color, var(--color-bc-banner-dark));
-      --bc-button-bg: var(--bc-banner-adaptive-dark-button-background, var(--color-bc-banner-dark));
-      --bc-button-text: var(--bc-banner-adaptive-dark-button-text, var(--color-bc-banner-white));
+    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-white .bc-banner-slide__media.bc-banner-slide__overlay::after {
+      background: rgb(255 255 255 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-desktop-opacity, 0.3)));
     }
   }
 
   @media screen and (max-width: 749px) {
-    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-black {
-      --bc-overlay-bg: rgb(0 0 0 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-mobile-opacity, 0.3)));
+    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-black .bc-banner-slide__media.bc-banner-slide__overlay::after {
+      background: rgb(0 0 0 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-mobile-opacity, 0.3)));
     }
 
-    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-white {
-      --bc-overlay-bg: rgb(255 255 255 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-mobile-opacity, 0.3)));
-      --bc-slide-text-color: var(--bc-banner-adaptive-dark-text-color, var(--color-bc-banner-dark));
-      --bc-button-bg: var(--bc-banner-adaptive-dark-button-background, var(--color-bc-banner-dark));
-      --bc-button-text: var(--bc-banner-adaptive-dark-button-text, var(--color-bc-banner-white));
+    .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-white .bc-banner-slide__media.bc-banner-slide__overlay::after {
+      background: rgb(255 255 255 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-mobile-opacity, 0.3)));
     }
   }
 
@@ -255,7 +243,7 @@ banner-carousel.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__s
   font-weight: 400;
   line-height: 1.2;
   white-space: nowrap;
-  color: inherit;
+  color: var(--color-bc-banner-white);
   font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: clamp(22px, calc(26 / 1440 * 100vw), 52px);
 }

@@ -62,18 +62,26 @@ function getSlideClasses(
   return `bc-banner-slide is-active bc-banner-slide--adaptive-enabled bc-banner-slide--adaptive-desktop-${desktopVariant} bc-banner-slide--adaptive-mobile-${mobileVariant}`;
 }
 
-function getSlideStyle(
+function getOverlayStyle(
   slide: BannerSlidePreview,
+  config: BannerPreviewConfig,
   enabled: boolean,
   computed: boolean,
 ): React.CSSProperties {
-  const base: React.CSSProperties = {};
+  const base = {
+    "--bc-banner-overlay-opacity": String(config.overlayOpacity / 100),
+  } as React.CSSProperties;
+
   if (!enabled || !computed) return base;
-  const desktopOpacity = ((slide.desktopAdaptiveOverlayOpacity ?? 30) / 100).toString();
-  const mobileOpacity = ((slide.mobileAdaptiveOverlayOpacity ?? 30) / 100).toString();
+
   return {
-    "--bc-banner-adaptive-desktop-opacity": desktopOpacity,
-    "--bc-banner-adaptive-mobile-opacity": mobileOpacity,
+    ...base,
+    "--bc-banner-adaptive-desktop-opacity": String(
+      (slide.desktopAdaptiveOverlayOpacity ?? 30) / 100,
+    ),
+    "--bc-banner-adaptive-mobile-opacity": String(
+      (slide.mobileAdaptiveOverlayOpacity ?? 30) / 100,
+    ),
   } as React.CSSProperties;
 }
 
@@ -92,7 +100,6 @@ export function BannerPreview({ config, computationStates }: BannerPreviewProps)
         {
           "--bc-banner-aspect-ratio": "2.4 / 1",
           "--bc-banner-mobile-height": `${config.mobileHeight}px`,
-          "--bc-banner-overlay-opacity": String(config.overlayOpacity / 100),
         } as React.CSSProperties
       }
     >
@@ -100,10 +107,12 @@ export function BannerPreview({ config, computationStates }: BannerPreviewProps)
         {firstSlide ? (
           <div
             className={getSlideClasses(firstSlide, enabled, computed)}
-            style={getSlideStyle(firstSlide, enabled, computed)}
             aria-hidden="false"
           >
-            <div className="bc-banner-slide__media">
+            <div
+              className="bc-banner-slide__media bc-banner-slide__overlay"
+              style={getOverlayStyle(firstSlide, config, enabled, computed)}
+            >
               {imageUrl ? (
                 <img
                   className="bc-banner-slide__image"
@@ -111,7 +120,6 @@ export function BannerPreview({ config, computationStates }: BannerPreviewProps)
                   alt=""
                 />
               ) : null}
-              <div className="bc-banner-slide__overlay" />
             </div>
             <div className="bc-banner-slide__content">
               <h2 className="bc-banner-slide__heading">{firstSlide.heading}</h2>

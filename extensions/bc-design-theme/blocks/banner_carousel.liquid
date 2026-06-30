@@ -27,7 +27,7 @@
   {% else %}
     <banner-carousel
       class="bc-banner-carousel"
-      style="--bc-banner-aspect-ratio: 2.4 / 1; --bc-banner-mobile-height: {{ banner_config.mobileHeight | default: 560 }}px; --bc-banner-overlay-opacity: {{ banner_config.overlayOpacity | default: 20 | divided_by: 100.0 }};"
+      style="--bc-banner-aspect-ratio: 2.4 / 1; --bc-banner-mobile-height: {{ banner_config.mobileHeight | default: 560 }}px;"
       data-autoplay="{{ banner_config.autoplay }}"
       data-autoplay-speed="{{ banner_config.autoplaySpeed | default: 5 | times: 1000 }}"
       data-pause-on-hover="{{ banner_config.pauseOnHover }}"
@@ -44,6 +44,7 @@
             {% assign loading_attr = 'lazy' %}
           {% endif %}
           {% render 'banner_carousel_slide',
+            overlay_opacity: banner_config.overlayOpacity,
             desktop_image_filename: slide.desktopImageFilename,
             mobile_image_filename: slide.mobileImageFilename,
             video_url: slide.videoUrl,

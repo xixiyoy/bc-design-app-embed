@@ -6,6 +6,7 @@
     heading, subheading
     primary_button_label, primary_button_link
     secondary_button_label, secondary_button_link
+    overlay_opacity
     brightness_adaptive_overlay_enabled
     desktop_adaptive_overlay_variant, desktop_adaptive_overlay_opacity
     mobile_adaptive_overlay_variant, mobile_adaptive_overlay_opacity
@@ -29,14 +30,17 @@
 {%- assign desktop_opacity = desktop_opacity_percent | divided_by: 100.0 -%}
 {%- assign mobile_opacity = mobile_opacity_percent | divided_by: 100.0 -%}
 
+{%- assign overlay_opacity_value = overlay_opacity | default: 20 | plus: 0 | divided_by: 100.0 -%}
+{%- assign overlay_style = '--bc-banner-overlay-opacity: ' | append: overlay_opacity_value | append: ';' -%}
+
 {%- assign slide_classes = 'bc-banner-slide' -%}
-{%- assign slide_style = '' -%}
 
 {%- if brightness_adaptive_overlay_enabled -%}
   {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-enabled' -%}
   {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-desktop-' | append: desktop_variant -%}
   {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-mobile-' | append: mobile_variant -%}
-  {%- capture slide_style -%}
+  {%- capture overlay_style -%}
+    --bc-banner-overlay-opacity: {{ overlay_opacity_value }};
     --bc-banner-adaptive-desktop-opacity: {{ desktop_opacity }};
     --bc-banner-adaptive-mobile-opacity: {{ mobile_opacity }};
   {%- endcapture -%}
@@ -45,12 +49,9 @@
 <div
   class="{{ slide_classes }}"
   aria-hidden="true"
-  {% if slide_style != blank %}
-    style="{{ slide_style | strip }}"
-  {% endif %}
   {{ shopify_attributes }}
 >
-  <div class="bc-banner-slide__media">
+  <div class="bc-banner-slide__media bc-banner-slide__overlay" style="{{ overlay_style | strip }}">
     {%- if video_file_url != blank -%}
       <video
         class="bc-banner-slide__video"
@@ -103,7 +104,6 @@
     {%- else -%}
       {{ 'lifestyle-1' | placeholder_svg_tag: 'bc-banner-slide__image bc-banner-slide__placeholder' }}
     {%- endif -%}
-    <div class="bc-banner-slide__overlay"></div>
   </div>
 
   <div class="bc-banner-slide__content">
