@@ -26,11 +26,12 @@ function mountBrowserMocks(window) {
   globalThis.requestAnimationFrame = (cb) => globalThis.setTimeout(cb, 0);
   globalThis.cancelAnimationFrame = (id) => globalThis.clearTimeout(id);
 
-  const matchMedia =
-    window.matchMedia?.bind(window) ??
-    (() => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
-  window.matchMedia = matchMedia;
-  globalThis.matchMedia = matchMedia;
+  window.matchMedia = (query) => {
+    const matches =
+      query === '(hover: hover)' ? true : query === '(prefers-reduced-motion: reduce)' ? false : false;
+    return { matches, addEventListener() {}, removeEventListener() {} };
+  };
+  globalThis.matchMedia = window.matchMedia;
 
   const animateStub = function () {
     return { play() {}, pause() {}, cancel() {}, finish() {}, playState: 'idle', onfinish: null };
@@ -93,6 +94,93 @@ describe('banner-carousel lifecycle', () => {
 
     nextBtn.click();
     expect(track.style.transform).toBe('translateX(-100%)');
+  });
+
+  it('clicking right half of a video slide advances to next slide', async () => {
+    const host = document.getElementById('host');
+    const carousel = host.querySelector('banner-carousel');
+    const track = carousel.querySelector('.bc-banner-carousel__track');
+
+    carousel.querySelectorAll('.bc-banner-slide').forEach((slide, index) => {
+      slide.innerHTML = `
+        <div class="bc-banner-slide__media">
+          <video class="bc-banner-slide__video" src="slide-${index}.mp4"></video>
+        </div>
+      `;
+    });
+
+    host.removeChild(carousel);
+    document.body.appendChild(carousel);
+    vi.runAllTimers();
+
+    const video = carousel.querySelector('.bc-banner-slide__video');
+    const rect = carousel.getBoundingClientRect();
+    const rightHalfX = rect.left + rect.width * 0.75;
+
+    Object.defineProperty(video, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.left,
+        y: rect.top,
+      }),
+    });
+
+    video.dispatchEvent(
+      new window.MouseEvent('click', { bubbles: true, clientX: rightHalfX })
+    );
+
+    expect(track.style.transform).toBe('translateX(-100%)');
+  });
+
+  it('clicking left half of a video slide goes to previous slide', async () => {
+    const host = document.getElementById('host');
+    const carousel = host.querySelector('banner-carousel');
+    const track = carousel.querySelector('.bc-banner-carousel__track');
+
+    carousel.querySelectorAll('.bc-banner-slide').forEach((slide, index) => {
+      slide.innerHTML = `
+        <div class="bc-banner-slide__media">
+          <video class="bc-banner-slide__video" src="slide-${index}.mp4"></video>
+        </div>
+      `;
+    });
+
+    host.removeChild(carousel);
+    document.body.appendChild(carousel);
+    vi.runAllTimers();
+
+    carousel.goTo(1);
+    expect(track.style.transform).toBe('translateX(-100%)');
+
+    const video = carousel.querySelector('.bc-banner-slide__video');
+    const rect = carousel.getBoundingClientRect();
+    const leftHalfX = rect.left + rect.width * 0.25;
+
+    Object.defineProperty(video, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.left,
+        y: rect.top,
+      }),
+    });
+
+    video.dispatchEvent(
+      new window.MouseEvent('click', { bubbles: true, clientX: leftHalfX })
+    );
+
+    expect(track.style.transform).toBe('translateX(0%)');
   });
 
   it('after DOM move, ArrowRight keydown advances exactly one slide', () => {

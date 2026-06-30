@@ -119,7 +119,7 @@ class BcBannerCarousel extends HTMLElement {
   }
 
   isInteractiveTarget(target) {
-    return Boolean(target.closest('a, button, video'));
+    return Boolean(target.closest('a, button'));
   }
 
   getBannerCenterX() {
