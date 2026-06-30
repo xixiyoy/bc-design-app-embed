@@ -87,7 +87,7 @@ function buildStagedUploadInput(file: File) {
     mimeType: string;
     resource: ReturnType<typeof stagedUploadResource>;
     httpMethod: "POST";
-    fileSize?: number;
+    fileSize?: string;
   } = {
     filename: file.name,
     mimeType,
@@ -99,7 +99,7 @@ function buildStagedUploadInput(file: File) {
     if (!file.size) {
       throw new Error("Video upload requires a non-zero file size.");
     }
-    input.fileSize = file.size;
+    input.fileSize = String(file.size);
   }
 
   return input;

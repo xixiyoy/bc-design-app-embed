@@ -371,7 +371,13 @@ export default function BannerPage() {
 
     wasSubmittingRef.current = false;
     const data = fetcher.data;
-    if (!data) return;
+    if (!data) {
+      shopify.toast.show(
+        "Save request failed. The server may have timed out. Please try again.",
+        { isError: true },
+      );
+      return;
+    }
 
     if (data.intent === "saveBanner" && data.ok) {
       shopify.toast.show("Banner saved");
@@ -792,7 +798,8 @@ export default function BannerPage() {
         hasDesktop &&
         !hasMobile &&
         slide.desktopImage === last.desktop &&
-        state.desktop === "calculated"
+        state.desktop === "calculated" &&
+        state.mobile !== "calculated"
       ) {
         updateSlide(slideIndex, {
           mobileAverageBrightness: slide.desktopAverageBrightness,
@@ -811,7 +818,8 @@ export default function BannerPage() {
         !hasDesktop &&
         hasMobile &&
         slide.mobileImage === last.mobile &&
-        state.mobile === "calculated"
+        state.mobile === "calculated" &&
+        state.desktop !== "calculated"
       ) {
         updateSlide(slideIndex, {
           desktopAverageBrightness: slide.mobileAverageBrightness,
@@ -925,6 +933,21 @@ export default function BannerPage() {
   );
 
   const handleSave = () => {
+    const hasPendingFiles = formState.slides.some((slide) =>
+      SLIDE_MEDIA_FIELDS.some((field) => pendingFiles[`${slide.id}.${field}`]),
+    );
+
+    if (!hasPendingFiles) {
+      fetcher.submit(
+        {
+          intent: "saveBanner",
+          config: JSON.stringify(formState),
+        },
+        { method: "post" },
+      );
+      return;
+    }
+
     const formData = new FormData();
     formData.append("intent", "saveBanner");
     formData.append("config", JSON.stringify(formState));
