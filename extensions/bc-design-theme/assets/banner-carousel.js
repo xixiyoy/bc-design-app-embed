@@ -10,6 +10,8 @@ class BcBannerCarousel extends HTMLElement {
 
     this.track = this.querySelector('.bc-banner-carousel__track');
     this.indicatorsContainer = this.querySelector('.bc-banner-carousel__indicators');
+    this.mobileProgress = this.querySelector('.bc-banner-carousel__mobile-progress');
+    this.mobileProgressFill = this.mobileProgress?.querySelector('.bc-banner-carousel__mobile-progress-fill') ?? null;
     this.prevButton = this.querySelector('.bc-banner-carousel__nav--prev');
     this.nextButton = this.querySelector('.bc-banner-carousel__nav--next');
     this.index = 0;
@@ -29,7 +31,7 @@ class BcBannerCarousel extends HTMLElement {
       if (this.slides.length === 0) return;
 
       this.style.setProperty('--bc-banner-progress-duration', `${this.autoplaySpeed}ms`);
-      this.createIndicators();
+      this.setupProgressUI();
       this.setupNavigation();
       this.setupCursorNavigation();
       this.bindEvents();
@@ -48,7 +50,11 @@ class BcBannerCarousel extends HTMLElement {
     this.stopAutoplay();
 
     if (this.__bcBoundHandlers) {
-      this.__bcBoundHandlers.forEach(({ target, type, handler, options }) => {
+      this.__bcBoundHandlers.forEach(({ target, type, handler, options, legacy }) => {
+        if (legacy && typeof target.removeListener === 'function') {
+          target.removeListener(handler);
+          return;
+        }
         target.removeEventListener(type, handler, options);
       });
       this.__bcBoundHandlers = [];
@@ -56,6 +62,12 @@ class BcBannerCarousel extends HTMLElement {
 
     if (this.indicatorsContainer) {
       this.indicatorsContainer.textContent = '';
+    }
+
+    if (this.mobileProgress) {
+      this.mobileProgress.hidden = true;
+      this.mobileProgress.classList.remove('is-active', 'is-autoplaying');
+      this.resetProgressElement(this.mobileProgressFill);
     }
 
     this.indicators = [];
@@ -69,11 +81,53 @@ class BcBannerCarousel extends HTMLElement {
     this.__bcBoundHandlers.push({ target, type, handler, options });
   }
 
-  createIndicators() {
-    if (!this.indicatorsContainer || this.dataset.showIndicators !== 'true' || this.slides.length <= 1) {
+  isMobileLayout() {
+    return window.matchMedia('(max-width: 749px)').matches;
+  }
+
+  shouldShowIndicators() {
+    return this.dataset.showIndicators === 'true' && this.slides.length > 1;
+  }
+
+  setupProgressUI() {
+    if (!this.shouldShowIndicators()) {
       if (this.indicatorsContainer) this.indicatorsContainer.hidden = true;
+      if (this.mobileProgress) this.mobileProgress.hidden = true;
       this.indicators = [];
       return;
+    }
+
+    if (this.isMobileLayout()) {
+      this.setupMobileProgress();
+      return;
+    }
+
+    this.setupDesktopIndicators();
+  }
+
+  setupMobileProgress() {
+    if (this.indicatorsContainer) {
+      this.indicatorsContainer.textContent = '';
+      this.indicatorsContainer.hidden = true;
+    }
+
+    this.indicators = [];
+
+    if (this.mobileProgress) {
+      this.mobileProgress.hidden = false;
+    }
+  }
+
+  setupDesktopIndicators() {
+    if (!this.indicatorsContainer) {
+      this.indicators = [];
+      return;
+    }
+
+    if (this.mobileProgress) {
+      this.mobileProgress.hidden = true;
+      this.mobileProgress.classList.remove('is-active', 'is-autoplaying');
+      this.resetProgressElement(this.mobileProgressFill);
     }
 
     this.indicatorsContainer.textContent = '';
@@ -98,6 +152,10 @@ class BcBannerCarousel extends HTMLElement {
       this.indicatorsContainer.append(button);
       return button;
     });
+  }
+
+  createIndicators() {
+    this.setupProgressUI();
   }
 
   setupNavigation() {
@@ -197,6 +255,10 @@ class BcBannerCarousel extends HTMLElement {
   }
 
   getActiveProgressElement() {
+    if (this.isMobileLayout()) {
+      return this.mobileProgressFill;
+    }
+
     return this.indicators?.[this.index]?.querySelector('.bc-banner-carousel__indicator-progress') ?? null;
   }
 
@@ -223,8 +285,12 @@ class BcBannerCarousel extends HTMLElement {
 
     this.cancelProgressAnimation();
 
-    const activeIndicator = this.indicators[this.index];
-    activeIndicator?.classList.add('is-autoplaying');
+    if (this.isMobileLayout()) {
+      this.mobileProgress?.classList.add('is-autoplaying');
+    } else {
+      const activeIndicator = this.indicators[this.index];
+      activeIndicator?.classList.add('is-autoplaying');
+    }
 
     this.progressAnimation = progress.animate(
       [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
@@ -261,12 +327,17 @@ class BcBannerCarousel extends HTMLElement {
   restartProgressIfNeeded() {
     this.cancelProgressAnimation();
 
-    this.indicators?.forEach((indicator) => {
-      indicator.classList.remove('is-autoplaying');
-      this.resetProgressElement(
-        indicator.querySelector('.bc-banner-carousel__indicator-progress')
-      );
-    });
+    if (this.isMobileLayout()) {
+      this.mobileProgress?.classList.remove('is-autoplaying');
+      this.resetProgressElement(this.mobileProgressFill);
+    } else {
+      this.indicators?.forEach((indicator) => {
+        indicator.classList.remove('is-autoplaying');
+        this.resetProgressElement(
+          indicator.querySelector('.bc-banner-carousel__indicator-progress')
+        );
+      });
+    }
 
     if (!this.isAutoplayEnabled()) return;
 
@@ -322,6 +393,26 @@ class BcBannerCarousel extends HTMLElement {
         if (distanceX > 0) this.previous();
       }
     }, { passive: true });
+
+    this.__bcLayoutMediaQuery = window.matchMedia('(max-width: 749px)');
+    const onLayoutChange = () => {
+      this.setupProgressUI();
+      this.updateIndicators();
+      this.restartProgressIfNeeded();
+    };
+
+    if (typeof this.__bcLayoutMediaQuery.addEventListener === 'function') {
+      this.__bcAddListener(this.__bcLayoutMediaQuery, 'change', onLayoutChange);
+    } else if (typeof this.__bcLayoutMediaQuery.addListener === 'function') {
+      this.__bcLayoutMediaQuery.addListener(onLayoutChange);
+      this.__bcBoundHandlers.push({
+        target: this.__bcLayoutMediaQuery,
+        type: 'change',
+        handler: onLayoutChange,
+        options: undefined,
+        legacy: true,
+      });
+    }
   }
 
   previous() {
@@ -362,6 +453,14 @@ class BcBannerCarousel extends HTMLElement {
   }
 
   updateIndicators() {
+    if (this.isMobileLayout()) {
+      if (!this.mobileProgress) return;
+
+      this.mobileProgress.classList.remove('is-autoplaying');
+      this.mobileProgress.classList.toggle('is-active', this.shouldShowIndicators());
+      return;
+    }
+
     if (!this.indicators) return;
 
     this.indicators.forEach((indicator, indicatorIndex) => {

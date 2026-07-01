@@ -78,6 +78,10 @@
     transform: scaleX(1);
   }
 
+  .bc-banner-carousel__mobile-progress {
+    @apply hidden;
+  }
+
   .bc-banner-slide {
     @apply relative min-w-full h-full overflow-hidden;
   }
@@ -153,12 +157,22 @@
     }
 
     .bc-banner-carousel__indicators {
-      @apply gap-2;
-      bottom: 12px;
+      @apply hidden;
     }
 
-    .bc-banner-carousel__indicator {
-      @apply w-12 h-1;
+    .bc-banner-carousel__mobile-progress:not([hidden]) {
+      @apply absolute bottom-0 left-0 z-[4] block w-full overflow-hidden bg-bc-banner-white/30;
+      height: 2px;
+    }
+
+    .bc-banner-carousel__mobile-progress-fill {
+      @apply absolute inset-0 block bg-bc-banner-white;
+      transform-origin: left center;
+      transform: scaleX(0);
+    }
+
+    .bc-banner-carousel__mobile-progress.is-active:not(.is-autoplaying) .bc-banner-carousel__mobile-progress-fill {
+      transform: scaleX(1);
     }
 
     .bc-banner-slide__content {

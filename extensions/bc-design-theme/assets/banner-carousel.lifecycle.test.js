@@ -15,7 +15,7 @@ function bridgeTimers(window) {
   }
 }
 
-function mountBrowserMocks(window) {
+function mountBrowserMocks(window, { mobile = false } = {}) {
   globalThis.window = window;
   globalThis.document = window.document;
   globalThis.customElements = window.customElements;
@@ -28,7 +28,13 @@ function mountBrowserMocks(window) {
 
   window.matchMedia = (query) => {
     const matches =
-      query === '(hover: hover)' ? true : query === '(prefers-reduced-motion: reduce)' ? false : false;
+      query === '(hover: hover)'
+        ? true
+        : query === '(prefers-reduced-motion: reduce)'
+          ? false
+          : query === '(max-width: 749px)'
+            ? mobile
+            : false;
     return { matches, addEventListener() {}, removeEventListener() {} };
   };
   globalThis.matchMedia = window.matchMedia;
@@ -59,6 +65,9 @@ describe('banner-carousel lifecycle', () => {
             <div class="bc-banner-slide"></div>
           </div>
           <div class="bc-banner-carousel__indicators"></div>
+          <div class="bc-banner-carousel__mobile-progress" hidden>
+            <span class="bc-banner-carousel__mobile-progress-fill"></span>
+          </div>
           <button class="bc-banner-carousel__nav bc-banner-carousel__nav--prev"></button>
           <button class="bc-banner-carousel__nav bc-banner-carousel__nav--next"></button>
         </banner-carousel>
@@ -194,5 +203,46 @@ describe('banner-carousel lifecycle', () => {
 
     carousel.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
     expect(track.style.transform).toBe('translateX(-100%)');
+  });
+});
+
+describe('banner-carousel mobile progress', () => {
+  let window;
+  let document;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.useFakeTimers();
+    window = new Window();
+    document = window.document;
+    mountBrowserMocks(window, { mobile: true });
+
+    document.body.innerHTML = `
+      <banner-carousel data-autoplay="true" data-show-indicators="true" data-autoplay-speed="5000">
+        <div class="bc-banner-carousel__track">
+          <div class="bc-banner-slide"></div>
+          <div class="bc-banner-slide"></div>
+        </div>
+        <div class="bc-banner-carousel__indicators"></div>
+        <div class="bc-banner-carousel__mobile-progress" hidden>
+          <span class="bc-banner-carousel__mobile-progress-fill"></span>
+        </div>
+      </banner-carousel>
+    `;
+
+    await import('./banner-carousel.js');
+    vi.runAllTimers();
+  });
+
+  it('uses a single full-width mobile progress bar instead of segmented indicators', () => {
+    const carousel = document.querySelector('banner-carousel');
+    const indicators = carousel.querySelectorAll('.bc-banner-carousel__indicator');
+    const mobileProgress = carousel.querySelector('.bc-banner-carousel__mobile-progress');
+    const mobileProgressFill = carousel.querySelector('.bc-banner-carousel__mobile-progress-fill');
+
+    expect(indicators.length).toBe(0);
+    expect(mobileProgress.hidden).toBe(false);
+    expect(mobileProgressFill).toBeTruthy();
+    expect(mobileProgress.classList.contains('is-active')).toBe(true);
   });
 });
