@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   extractFilename,
+  normalizeShopifyFileFilename,
   videoFileUrlFromNode,
+  imageFileUrlFromNode,
   loadNavigationConfig,
   saveNavigationConfig,
   loadBannerConfig,
@@ -30,9 +32,30 @@ describe("extractFilename", () => {
   it("should decode url encoded characters", () => {
     expect(extractFilename("https://cdn.shopify.com/files/summer%20banner.png?v=456")).toBe("summer banner.png");
   });
+  it("should strip Shopify CDN size suffixes", () => {
+    expect(extractFilename("https://cdn.shopify.com/files/logo_small.png?v=1")).toBe("logo.png");
+  });
   it("should return empty string if no url is provided", () => {
     expect(extractFilename(null)).toBe("");
     expect(extractFilename(undefined)).toBe("");
+  });
+});
+
+describe("normalizeShopifyFileFilename", () => {
+  it("removes known Shopify file size suffixes", () => {
+    expect(normalizeShopifyFileFilename("logo_small.png")).toBe("logo.png");
+    expect(normalizeShopifyFileFilename("logo.png")).toBe("logo.png");
+  });
+});
+
+describe("imageFileUrlFromNode", () => {
+  it("prefers MediaImage image url over preview url", () => {
+    expect(
+      imageFileUrlFromNode({
+        image: { url: "https://cdn.shopify.com/files/logo.png" },
+        preview: { image: { url: "https://cdn.shopify.com/files/logo_small.png" } },
+      }),
+    ).toBe("https://cdn.shopify.com/files/logo.png");
   });
 });
 
@@ -229,6 +252,7 @@ describe("loadNavigationConfig", () => {
 
     const config = await loadNavigationConfig({} as any);
     expect(config.logoFileFilename).toBe("logo_file.png");
+    expect(config.logoFileUrl).toBe("https://cdn.shopify.com/files/logo_file.png?v=1");
     expect(config.secondLevelConfigs[0].adImageFilename).toBe("ad_img.jpg");
     expect(config.secondLevelConfigs[1].bigImage1Filename).toBe("big_img_1.png");
     expect(adminGraphql).toHaveBeenCalledTimes(4);

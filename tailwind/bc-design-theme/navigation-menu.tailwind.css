@@ -190,31 +190,22 @@
     display: none;
   }
 
-  .phaetus-nav-root .nav-menu::before,
-  .phaetus-nav-root .nav-menu::after {
+  /* Fade overlays on the non-scrolling wrapper so they stay fixed while menu scrolls */
+  .phaetus-nav-root .nav-scroll-wrap::before {
     content: '';
     position: absolute;
     top: 0;
     bottom: 0;
+    left: 0;
     width: 48px;
     pointer-events: none;
     z-index: 2;
     opacity: 0;
     transition: opacity 0.2s ease;
-  }
-
-  .phaetus-nav-root .nav-menu::before {
-    left: 0;
     background: linear-gradient(to right, var(--phaetus-nav-background-color), transparent);
   }
 
-  .phaetus-nav-root .nav-menu::after {
-    right: 0;
-    background: linear-gradient(to left, var(--phaetus-nav-background-color), transparent);
-  }
-
-  .phaetus-nav-root .nav-scroll-wrap.is-faded-left .nav-menu::before,
-  .phaetus-nav-root .nav-scroll-wrap.is-faded-right .nav-menu::after {
+  .phaetus-nav-root .nav-scroll-wrap.is-faded-left::before {
     opacity: 1;
   }
 
@@ -270,7 +261,26 @@
     justify-content: center;
     flex-shrink: 0;
     margin-left: calc(4px * var(--phaetus-scale));
+    position: relative;
     transition: opacity 0.2s ease, visibility 0.2s ease;
+  }
+
+  .phaetus-nav-root .nav-scroll-controls::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 100%;
+    width: 48px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    background: linear-gradient(to left, var(--phaetus-nav-background-color), transparent);
+  }
+
+  .phaetus-nav-root .nav-scroll-wrap.is-faded-right .nav-scroll-controls::before {
+    opacity: 1;
   }
 
   .phaetus-nav-root .nav-scroll-controls.nav-hidden {
@@ -590,9 +600,12 @@
 
   .phaetus-nav-root .content-list-ad-link img {
     display: block;
-    width: 100%;
     height: 100%;
-    min-height: 0;
+    width: auto;
+    max-width: none;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   /* product-card is an <a> — needs text-decoration reset */

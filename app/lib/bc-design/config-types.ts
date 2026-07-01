@@ -35,6 +35,7 @@ export type NavigationConfig = {
   logoText: string;
   logoFile?: string;
   logoFileFilename?: string; // NEW
+  logoFileUrl?: string;
   navBackgroundColor: string;
   primaryNavTextColor: string;
   secondaryNavTextColor: string;

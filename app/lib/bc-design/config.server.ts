@@ -10,11 +10,56 @@ import {
   loadBannerConfig as loadLegacyBanner,
 } from "./metaobjects.server";
 
+const SHOPIFY_FILE_SIZE_SUFFIXES = [
+  "_pico",
+  "_icon",
+  "_thumb",
+  "_small",
+  "_compact",
+  "_medium",
+  "_large",
+  "_grande",
+  "_original",
+  "_master",
+] as const;
+
+export function normalizeShopifyFileFilename(filename: string): string {
+  if (!filename) return "";
+  const dotIndex = filename.lastIndexOf(".");
+  if (dotIndex === -1) return filename;
+
+  const base = filename.slice(0, dotIndex);
+  const ext = filename.slice(dotIndex);
+  for (const suffix of SHOPIFY_FILE_SIZE_SUFFIXES) {
+    if (base.endsWith(suffix)) {
+      return base.slice(0, -suffix.length) + ext;
+    }
+  }
+  return filename;
+}
+
 export function extractFilename(url?: string | null): string {
   if (!url) return "";
   const cleanUrl = url.split("?")[0];
   const filename = cleanUrl.substring(cleanUrl.lastIndexOf("/") + 1);
-  return filename ? decodeURIComponent(filename) : "";
+  return filename
+    ? normalizeShopifyFileFilename(decodeURIComponent(filename))
+    : "";
+}
+
+function shopifyFileFilenameNeedsResolution(filename?: string): boolean {
+  if (!filename) return true;
+  return normalizeShopifyFileFilename(filename) !== filename;
+}
+
+type ImageFileNode = {
+  id?: string;
+  image?: { url?: string | null } | null;
+  preview?: { image?: { url?: string | null } | null } | null;
+};
+
+export function imageFileUrlFromNode(node: ImageFileNode): string | undefined {
+  return node.image?.url ?? node.preview?.image?.url ?? undefined;
 }
 
 type FileNodeWithVideoUrl = {
@@ -72,6 +117,11 @@ export const GET_FILE_DETAILS = `#graphql
       ... on File {
         id
         fileStatus
+        ... on MediaImage {
+          image {
+            url
+          }
+        }
         preview {
           image {
             url
@@ -126,8 +176,9 @@ async function resolveBannerSlideImageFilenames(
     });
     const fileUrls: Record<string, string> = {};
     for (const node of filesData.nodes || []) {
-      if (!node?.preview?.image?.url) continue;
-      fileUrls[node.id] = node.preview.image.url;
+      const imageUrl = imageFileUrlFromNode(node);
+      if (!node?.id || !imageUrl) continue;
+      fileUrls[node.id] = imageUrl;
     }
 
     for (const slide of config.slides) {
@@ -161,7 +212,11 @@ async function resolveNavigationImageFilenames(
 ): Promise<boolean> {
   const pendingGids = new Set<string>();
 
-  if (config.logoFile && !config.logoFileFilename) {
+  if (
+    config.logoFile &&
+    (!config.logoFileUrl ||
+      shopifyFileFilenameNeedsResolution(config.logoFileFilename))
+  ) {
     pendingGids.add(config.logoFile);
   }
 
@@ -190,17 +245,25 @@ async function resolveNavigationImageFilenames(
     });
     const fileUrls: Record<string, string> = {};
     for (const node of filesData.nodes || []) {
-      if (!node?.preview?.image?.url) continue;
-      fileUrls[node.id] = node.preview.image.url;
+      const imageUrl = imageFileUrlFromNode(node);
+      if (!node?.id || !imageUrl) continue;
+      fileUrls[node.id] = imageUrl;
     }
 
-    if (
-      config.logoFile &&
-      !config.logoFileFilename &&
-      fileUrls[config.logoFile]
-    ) {
-      config.logoFileFilename = extractFilename(fileUrls[config.logoFile]);
-      needsSave = true;
+    if (config.logoFile && fileUrls[config.logoFile]) {
+      const logoImageUrl = fileUrls[config.logoFile];
+      if (logoImageUrl !== config.logoFileUrl) {
+        config.logoFileUrl = logoImageUrl;
+        needsSave = true;
+      }
+      const resolvedLogoFilename = extractFilename(logoImageUrl);
+      if (
+        resolvedLogoFilename &&
+        resolvedLogoFilename !== config.logoFileFilename
+      ) {
+        config.logoFileFilename = resolvedLogoFilename;
+        needsSave = true;
+      }
     }
 
     for (const child of config.secondLevelConfigs ?? []) {
@@ -301,15 +364,17 @@ export async function loadNavigationConfig(admin: AdminGraphqlClient): Promise<N
       if (gids.length > 0) {
         const filesData = await adminGraphql<any>(admin, GET_FILE_DETAILS, { ids: gids });
         for (const node of filesData.nodes || []) {
-          if (!node) continue; // Null check to prevent TypeError
-          if (node.preview?.image?.url) {
-            fileUrls[node.id] = node.preview.image.url;
+          if (!node) continue;
+          const imageUrl = imageFileUrlFromNode(node);
+          if (imageUrl) {
+            fileUrls[node.id] = imageUrl;
           }
         }
       }
 
       // Map filenames back to configuration
       if (legacyConfig.logoFile && fileUrls[legacyConfig.logoFile]) {
+        legacyConfig.logoFileUrl = fileUrls[legacyConfig.logoFile];
         legacyConfig.logoFileFilename = extractFilename(fileUrls[legacyConfig.logoFile]);
       }
       if (legacyConfig.secondLevelConfigs) {
@@ -394,8 +459,9 @@ export async function loadBannerConfig(admin: AdminGraphqlClient): Promise<Banne
         if (gids.length > 0) {
           const filesData = await adminGraphql<any>(admin, GET_FILE_DETAILS, { ids: gids });
           for (const node of filesData.nodes || []) {
-            if (!node) continue; // Null check to prevent TypeError
-            if (node.preview?.image?.url) fileUrls[node.id] = node.preview.image.url;
+            if (!node) continue;
+            const imageUrl = imageFileUrlFromNode(node);
+            if (imageUrl) fileUrls[node.id] = imageUrl;
             const resolvedVideoUrl = videoFileUrlFromNode(node);
             if (resolvedVideoUrl) videoSources[node.id] = resolvedVideoUrl;
           }

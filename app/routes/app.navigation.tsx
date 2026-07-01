@@ -37,6 +37,8 @@ import {
   loadNavigationConfig,
   saveNavigationConfig,
   extractFilename,
+  GET_FILE_DETAILS,
+  imageFileUrlFromNode,
 } from "../lib/bc-design/config.server";
 import { ensureProductBadgeMetafieldDefinitions } from "../lib/bc-design/product-badges.server";
 import { authenticate } from "../shopify.server";
@@ -230,6 +232,8 @@ function parseNavigationConfigPayload(raw: string): NavigationConfig {
     logoType: parsed.logoType,
     logoText: parsed.logoText ?? "",
     logoFile: parsed.logoFile || undefined,
+    logoFileFilename: parsed.logoFileFilename || undefined,
+    logoFileUrl: parsed.logoFileUrl || undefined,
     navBackgroundColor: parsed.navBackgroundColor ?? "#ffffff",
     primaryNavTextColor: parsed.primaryNavTextColor ?? "#7a7b7e",
     secondaryNavTextColor: parsed.secondaryNavTextColor ?? "#7a7b7e",
@@ -257,10 +261,37 @@ async function mergeUploadedFiles(
   if (logoFile instanceof File && logoFile.size > 0) {
     const uploaded = await createShopifyFileFromUpload(admin, logoFile);
     config.logoFile = uploaded.id;
-    config.logoFileFilename = extractFilename(uploaded.url);
-  } else if (!config.logoFile) { // Preserved condition guard
-    config.logoFile = previous.logoFile;
-    config.logoFileFilename = previous.logoFileFilename;
+    config.logoFileFilename =
+      logoFile.name || extractFilename(uploaded.url);
+    config.logoFileUrl = uploaded.url;
+
+    if (!config.logoFileUrl) {
+      try {
+        const previewResult = await adminGraphql<any>(admin, GET_FILE_DETAILS, {
+          ids: [uploaded.id],
+        });
+        const imageUrl = imageFileUrlFromNode(previewResult?.nodes?.[0]);
+        if (imageUrl) {
+          config.logoFileUrl = imageUrl;
+          if (!config.logoFileFilename) {
+            config.logoFileFilename =
+              extractFilename(imageUrl) || logoFile.name;
+          }
+        }
+      } catch (error) {
+        console.warn("Failed to resolve logo image URL after upload", error);
+      }
+    }
+  } else {
+    if (!config.logoFile) {
+      config.logoFile = previous.logoFile;
+    }
+    if (!config.logoFileFilename) {
+      config.logoFileFilename = previous.logoFileFilename;
+    }
+    if (!config.logoFileUrl) {
+      config.logoFileUrl = previous.logoFileUrl;
+    }
   }
 
   for (const [index, child] of config.secondLevelConfigs.entries()) {

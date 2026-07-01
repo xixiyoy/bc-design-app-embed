@@ -41,9 +41,9 @@
   {% assign bc_fixed_navigation = nav_config.fixedNavigation %}
   {% assign logo_type = nav_config.logoType | default: 'text' %}
   {% assign logo_text = nav_config.logoText | strip %}
-  {% assign logo_file_url = nil %}
-  {% if nav_config.logoFileFilename != blank %}
-    {% assign logo_file_url = nav_config.logoFileFilename | file_img_url: 'master' %}
+  {% assign logo_file_url = nav_config.logoFileUrl %}
+  {% if logo_file_url == blank and nav_config.logoFileFilename != blank %}
+    {% assign logo_file_url = nav_config.logoFileFilename | file_url %}
   {% endif %}
   {% assign icon_color = nav_config.iconColor | default: '#7a7b7e' %}
   {% assign nav_background_color = nav_config.navBackgroundColor | default: '#ffffff' %}
@@ -81,7 +81,7 @@
         {% if logo_type == 'image' and logo_file_url != blank %}
           <img
             class="logo-img"
-            src="{{ logo_file_url }}"
+            src="{{ logo_file_url | escape }}"
             alt="{{ logo_text | default: shop.name | escape }}"
             loading="eager"
           >
@@ -449,7 +449,8 @@ document.addEventListener('DOMContentLoaded', function () {
     setNavScrollButtonState(navNextBtn, canScrollRight);
 
     if (navScrollWrap) {
-      navScrollWrap.classList.add('is-faded-left', 'is-faded-right');
+      navScrollWrap.classList.toggle('is-faded-left', canScrollLeft);
+      navScrollWrap.classList.toggle('is-faded-right', canScrollRight);
     }
   }
 
