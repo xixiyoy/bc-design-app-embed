@@ -7,6 +7,8 @@
   --color-bc-banner-black: oklch(0% 0 0);
   --color-bc-banner-white: oklch(100% 0 0);
   --color-bc-banner-dark: oklch(17.76% 0 0);
+  --color-bc-banner-inverse: #111;
+  --color-bc-banner-inverse-text: rgb(17 17 17 / 80%);
 }
 
 @layer components {
@@ -84,6 +86,11 @@
 
   .bc-banner-slide {
     @apply relative min-w-full h-full overflow-hidden;
+    --bc-banner-slide-text-color: var(--color-bc-banner-white);
+    --bc-banner-button-primary-bg: var(--color-bc-banner-white);
+    --bc-banner-button-primary-text: var(--color-bc-banner-black);
+    --bc-banner-button-secondary-border: var(--color-bc-banner-white);
+    --bc-banner-button-secondary-text: var(--color-bc-banner-white);
   }
 
   .bc-banner-slide[hidden] {
@@ -132,15 +139,17 @@
   }
 
   .bc-banner-slide__button--primary {
-    @apply bg-bc-banner-white text-bc-banner-black;
-    border-color: var(--color-bc-banner-white);
-    transition: transform 0.2s ease, opacity 0.2s ease;
+    background-color: var(--bc-banner-button-primary-bg);
+    color: var(--bc-banner-button-primary-text);
+    border-color: var(--bc-banner-button-primary-bg);
+    transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   }
 
   .bc-banner-slide__button--secondary {
-    @apply bg-transparent text-bc-banner-white;
-    border: 2px solid var(--color-bc-banner-white);
-    transition: transform 0.2s ease, opacity 0.2s ease;
+    @apply bg-transparent;
+    color: var(--bc-banner-button-secondary-text);
+    border: 2px solid var(--bc-banner-button-secondary-border);
+    transition: transform 0.2s ease, opacity 0.2s ease, border-color 0.3s ease, color 0.3s ease;
   }
 
   @media (max-width: 989px) {
@@ -198,6 +207,14 @@
   }
 
   @media screen and (min-width: 750px) {
+    .bc-banner-slide--adaptive-desktop-white {
+      --bc-banner-slide-text-color: var(--color-bc-banner-inverse-text);
+      --bc-banner-button-primary-bg: var(--color-bc-banner-inverse);
+      --bc-banner-button-primary-text: var(--color-bc-banner-white);
+      --bc-banner-button-secondary-border: var(--color-bc-banner-inverse);
+      --bc-banner-button-secondary-text: var(--color-bc-banner-inverse);
+    }
+
     .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-desktop-black .bc-banner-slide__media.bc-banner-slide__overlay::after {
       background: rgb(0 0 0 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-desktop-opacity, 0.3)));
     }
@@ -208,6 +225,14 @@
   }
 
   @media screen and (max-width: 749px) {
+    .bc-banner-slide--adaptive-mobile-white {
+      --bc-banner-slide-text-color: var(--color-bc-banner-inverse-text);
+      --bc-banner-button-primary-bg: var(--color-bc-banner-inverse);
+      --bc-banner-button-primary-text: var(--color-bc-banner-white);
+      --bc-banner-button-secondary-border: var(--color-bc-banner-inverse);
+      --bc-banner-button-secondary-text: var(--color-bc-banner-inverse);
+    }
+
     .bc-banner-slide--adaptive-enabled.bc-banner-slide--adaptive-mobile-black .bc-banner-slide__media.bc-banner-slide__overlay::after {
       background: rgb(0 0 0 / var(--bc-banner-overlay-opacity, var(--bc-banner-adaptive-mobile-opacity, 0.3)));
     }
@@ -241,7 +266,8 @@ banner-carousel.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__h
   line-height: 1;
   letter-spacing: normal;
   white-space: nowrap;
-  color: var(--color-bc-banner-white);
+  color: var(--bc-banner-slide-text-color);
+  transition: color 0.3s ease;
   font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: clamp(48px, calc(60 / 1440 * 100vw), 120px);
 }
@@ -252,7 +278,8 @@ banner-carousel.bc-banner-carousel .bc-banner-slide__content .bc-banner-slide__s
   font-weight: 400;
   line-height: 1.2;
   white-space: nowrap;
-  color: var(--color-bc-banner-white);
+  color: var(--bc-banner-slide-text-color);
+  transition: color 0.3s ease;
   font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: clamp(22px, calc(26 / 1440 * 100vw), 52px);
 }

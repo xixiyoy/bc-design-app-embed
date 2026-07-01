@@ -34,11 +34,11 @@
 {%- assign overlay_style = '--bc-banner-overlay-opacity: ' | append: overlay_opacity_value | append: ';' -%}
 
 {%- assign slide_classes = 'bc-banner-slide' -%}
+{%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-desktop-' | append: desktop_variant -%}
+{%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-mobile-' | append: mobile_variant -%}
 
 {%- if brightness_adaptive_overlay_enabled -%}
   {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-enabled' -%}
-  {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-desktop-' | append: desktop_variant -%}
-  {%- assign slide_classes = slide_classes | append: ' bc-banner-slide--adaptive-mobile-' | append: mobile_variant -%}
   {%- capture overlay_style -%}
     --bc-banner-overlay-opacity: {{ overlay_opacity_value }};
     --bc-banner-adaptive-desktop-opacity: {{ desktop_opacity }};

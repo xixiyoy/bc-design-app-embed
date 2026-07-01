@@ -10,7 +10,7 @@
  *
  * 本文件不写默认动画，仅提供挂钩函数与注释说明。
  * liquid 在对应 click 处调用 window.PhaetusNavAnim.* 。
- * More 按钮磁吸 hover、产品卡片图片 hover 在 DOMContentLoaded 时自动初始化。
+ * More 按钮磁吸 hover（暂时禁用）、产品卡片图片 hover 在 DOMContentLoaded 时自动初始化。
  *
  * 依赖: gsap.min.js（navigation_menu.liquid 中先于本文件加载）
  *
@@ -110,6 +110,9 @@
    * @param {HTMLElement|Document} [scope] — 默认 document 下全部 .phaetus-nav-root
    */
   function initMoreButtonMagnets(scope) {
+    // 暂时禁用 More 按钮磁吸 hover 动画
+    return;
+
     if (!canAnimate()) return;
 
     var gsap = global.gsap;
@@ -271,7 +274,7 @@
 
   if (typeof document !== 'undefined') {
     var bootNavHovers = function () {
-      initMoreButtonMagnets();
+      // initMoreButtonMagnets(); // 暂时禁用 More 按钮动画
       initProductCardImageHovers();
     };
 

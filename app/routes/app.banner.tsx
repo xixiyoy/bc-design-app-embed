@@ -310,7 +310,6 @@ type BannerFormState = BannerConfig;
 function buildComputationStates(
   config: BannerConfig,
 ): Record<string, SlideComputationState> {
-  const adaptiveEnabled = config.brightnessAdaptiveOverlayEnabled;
   const initialStates: Record<string, SlideComputationState> = {};
   for (const slide of config.slides) {
     const hasDesktopImage = Boolean(slide.desktopImage);
@@ -318,10 +317,8 @@ function buildComputationStates(
     const desktopBrightness = slide.desktopAverageBrightness ?? 0;
     const mobileBrightness = slide.mobileAverageBrightness ?? 0;
 
-    const desktopComputed =
-      hasDesktopImage && (!adaptiveEnabled || desktopBrightness !== 0);
-    const mobileComputed =
-      hasMobileImage && (!adaptiveEnabled || mobileBrightness !== 0);
+    const desktopComputed = !hasDesktopImage || desktopBrightness !== 0;
+    const mobileComputed = !hasMobileImage || mobileBrightness !== 0;
 
     initialStates[slide.id] = {
       desktop: desktopComputed ? "calculated" : "not_calculated",
@@ -475,13 +472,10 @@ export default function BannerPage() {
       const currentSlide = formStateRef.current.slides[currentIndex];
       const currentImageId =
         device === "desktop" ? currentSlide.desktopImage : currentSlide.mobileImage;
-      if (
-        currentImageId !== imageIdentifier ||
-        !formStateRef.current.brightnessAdaptiveOverlayEnabled
-      ) {
-        // Image was replaced or adaptive overlay was disabled while the calculation
-        // was in flight. If a newer computation for the current image is already
-        // running, leave its state alone so the UI stays on "calculating...".
+      if (currentImageId !== imageIdentifier) {
+        // Image was replaced while the calculation was in flight. If a newer
+        // computation for the current image is already running, leave its state
+        // alone so the UI stays on "calculating...".
         if (
           activeCalculations.current.has(
             `${slide.id}-${device}-${currentImageId}`,
@@ -775,10 +769,6 @@ export default function BannerPage() {
   }, [formState.brightnessAdaptiveOverlayEnabled]);
 
   useEffect(() => {
-    if (!formState.brightnessAdaptiveOverlayEnabled) {
-      return;
-    }
-
     const pendingComputations: BrightnessTask[] = [];
     let hasNewWork = false;
 
@@ -905,7 +895,6 @@ export default function BannerPage() {
     void runLimitedBrightnessTasks(pendingComputations, 3);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    formState.brightnessAdaptiveOverlayEnabled,
     imageIdentifiers,
     computationStates,
     computeSlideBrightness,

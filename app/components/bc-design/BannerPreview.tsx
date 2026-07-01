@@ -53,26 +53,34 @@ function isAdaptiveComputed(
 
 function getSlideClasses(
   slide: BannerSlidePreview,
-  enabled: boolean,
+  overlayEnabled: boolean,
   computed: boolean,
 ): string {
-  if (!enabled || !computed) return "bc-banner-slide is-active";
+  const base = "bc-banner-slide is-active";
+  if (!computed) return base;
+
   const desktopVariant = slide.desktopAdaptiveOverlayVariant ?? "black";
   const mobileVariant = slide.mobileAdaptiveOverlayVariant ?? desktopVariant;
-  return `bc-banner-slide is-active bc-banner-slide--adaptive-enabled bc-banner-slide--adaptive-desktop-${desktopVariant} bc-banner-slide--adaptive-mobile-${mobileVariant}`;
+  let classes = `${base} bc-banner-slide--adaptive-desktop-${desktopVariant} bc-banner-slide--adaptive-mobile-${mobileVariant}`;
+
+  if (overlayEnabled) {
+    classes += " bc-banner-slide--adaptive-enabled";
+  }
+
+  return classes;
 }
 
 function getOverlayStyle(
   slide: BannerSlidePreview,
   config: BannerPreviewConfig,
-  enabled: boolean,
+  overlayEnabled: boolean,
   computed: boolean,
 ): React.CSSProperties {
   const base = {
     "--bc-banner-overlay-opacity": String(config.overlayOpacity / 100),
   } as React.CSSProperties;
 
-  if (!enabled || !computed) return base;
+  if (!overlayEnabled || !computed) return base;
 
   return {
     ...base,
@@ -88,7 +96,7 @@ function getOverlayStyle(
 export function BannerPreview({ config, computationStates }: BannerPreviewProps) {
   const firstSlide = config.slides[0];
   const imageUrl = firstSlide ? resolveImageUrl(firstSlide) : undefined;
-  const enabled = config.brightnessAdaptiveOverlayEnabled;
+  const overlayEnabled = config.brightnessAdaptiveOverlayEnabled;
   const computed = firstSlide
     ? isAdaptiveComputed(firstSlide, computationStates)
     : false;
@@ -106,12 +114,12 @@ export function BannerPreview({ config, computationStates }: BannerPreviewProps)
       <div className="bc-banner-carousel__track">
         {firstSlide ? (
           <div
-            className={getSlideClasses(firstSlide, enabled, computed)}
+            className={getSlideClasses(firstSlide, overlayEnabled, computed)}
             aria-hidden="false"
           >
             <div
               className="bc-banner-slide__media bc-banner-slide__overlay"
-              style={getOverlayStyle(firstSlide, config, enabled, computed)}
+              style={getOverlayStyle(firstSlide, config, overlayEnabled, computed)}
             >
               {imageUrl ? (
                 <img
