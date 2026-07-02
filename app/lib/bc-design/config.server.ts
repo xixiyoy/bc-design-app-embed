@@ -2,8 +2,14 @@ import { adminGraphql, type AdminGraphqlClient } from "./admin-graphql.server";
 import {
   type NavigationConfig,
   type BannerConfig,
+  type ProductDetailConfig,
+  type ProductDetailGlobalModeConfig,
+  type ProductDetailGlobalMode,
+  type ProductOptionIconConfig,
   NAVIGATION_DEFAULTS,
   BANNER_DEFAULTS,
+  PRODUCT_DETAIL_DEFAULTS,
+  PRODUCT_DETAIL_GLOBAL_MODE_DEFAULTS,
 } from "./config-types";
 import {
   loadNavigationConfig as loadLegacyNavigation,
@@ -529,4 +535,143 @@ export async function saveBannerConfig(admin: AdminGraphqlClient, config: Banner
   if (result.metafieldsSet.userErrors?.length > 0) {
     throw new Error(JSON.stringify(result.metafieldsSet.userErrors));
   }
+}
+
+const GET_PRODUCT_DETAIL_CONFIG_QUERY = `#graphql
+  query BcDesignGetProductDetailConfig($id: ID!) {
+    product(id: $id) {
+      id
+      metafield(namespace: "$app", key: "product_detail_config") {
+        jsonValue
+      }
+    }
+  }
+`;
+
+const GET_PRODUCT_DETAIL_GLOBAL_MODE_QUERY = `#graphql
+  query BcDesignGetProductDetailGlobalMode {
+    currentAppInstallation {
+      id
+      metafield(namespace: "$app", key: "product_detail_global_mode") {
+        jsonValue
+      }
+    }
+  }
+`;
+
+export async function loadProductDetailConfig(
+  admin: AdminGraphqlClient,
+  productId: string,
+): Promise<ProductDetailConfig> {
+  const data = await adminGraphql<any>(admin, GET_PRODUCT_DETAIL_CONFIG_QUERY, { id: productId });
+  const jsonValue = data.product?.metafield?.jsonValue;
+  if (!jsonValue) {
+    return { ...PRODUCT_DETAIL_DEFAULTS };
+  }
+  return sanitizeProductDetailConfig(jsonValue);
+}
+
+export async function saveProductDetailConfig(
+  admin: AdminGraphqlClient,
+  productId: string,
+  config: ProductDetailConfig,
+): Promise<void> {
+  const result = await adminGraphql<any>(admin, SET_CONFIG_MUTATION, {
+    metafields: [
+      {
+        ownerId: productId,
+        namespace: "$app",
+        key: "product_detail_config",
+        type: "json",
+        value: JSON.stringify(config),
+      },
+    ],
+  });
+  if (result.metafieldsSet.userErrors?.length > 0) {
+    throw new Error(JSON.stringify(result.metafieldsSet.userErrors));
+  }
+}
+
+export async function loadProductDetailGlobalModeConfig(
+  admin: AdminGraphqlClient,
+): Promise<ProductDetailGlobalModeConfig> {
+  const data = await adminGraphql<any>(admin, GET_PRODUCT_DETAIL_GLOBAL_MODE_QUERY);
+  const jsonValue = data.currentAppInstallation?.metafield?.jsonValue;
+  if (!jsonValue || !jsonValue.mode) {
+    return { ...PRODUCT_DETAIL_GLOBAL_MODE_DEFAULTS };
+  }
+  const mode = jsonValue.mode;
+  const validModes: ProductDetailGlobalMode[] = ["off", "all_on", "per_product"];
+  if (!validModes.includes(mode)) {
+    return { ...PRODUCT_DETAIL_GLOBAL_MODE_DEFAULTS };
+  }
+  return { mode };
+}
+
+export async function saveProductDetailGlobalModeConfig(
+  admin: AdminGraphqlClient,
+  config: ProductDetailGlobalModeConfig,
+): Promise<void> {
+  const idData = await adminGraphql<{ currentAppInstallation: { id: string } }>(admin, GET_APP_ID_QUERY);
+  const ownerId = idData.currentAppInstallation.id;
+  const result = await adminGraphql<any>(admin, SET_CONFIG_MUTATION, {
+    metafields: [
+      {
+        ownerId,
+        namespace: "$app",
+        key: "product_detail_global_mode",
+        type: "json",
+        value: JSON.stringify(config),
+      },
+    ],
+  });
+  if (result.metafieldsSet.userErrors?.length > 0) {
+    throw new Error(JSON.stringify(result.metafieldsSet.userErrors));
+  }
+}
+
+export function sanitizeProductDetailConfig(raw: unknown): ProductDetailConfig {
+  if (typeof raw !== "object" || raw === null) {
+    return { ...PRODUCT_DETAIL_DEFAULTS };
+  }
+  const r = raw as Record<string, unknown>;
+
+  const sanitizeOptionIcons = (icons: unknown): ProductOptionIconConfig[] => {
+    if (!Array.isArray(icons)) return [];
+    return icons
+      .filter((icon): icon is Record<string, unknown> => typeof icon === "object" && icon !== null)
+      .map((icon) => ({
+        optionName: String(icon.optionName ?? ""),
+        optionValue: String(icon.optionValue ?? ""),
+        iconGid: icon.iconGid ? String(icon.iconGid) : undefined,
+        iconFilename: icon.iconFilename ? String(icon.iconFilename) : undefined,
+      }));
+  };
+
+  return {
+    enabled: Boolean(r.enabled),
+    three60BadgeImage: r.three60BadgeImage ? String(r.three60BadgeImage) : undefined,
+    three60BadgeImageFilename: r.three60BadgeImageFilename ? String(r.three60BadgeImageFilename) : undefined,
+    playButtonImage: r.playButtonImage ? String(r.playButtonImage) : undefined,
+    playButtonImageFilename: r.playButtonImageFilename ? String(r.playButtonImageFilename) : undefined,
+    zoomButtonImage: r.zoomButtonImage ? String(r.zoomButtonImage) : undefined,
+    zoomButtonImageFilename: r.zoomButtonImageFilename ? String(r.zoomButtonImageFilename) : undefined,
+    tab3dImage: r.tab3dImage ? String(r.tab3dImage) : undefined,
+    tab3dImageFilename: r.tab3dImageFilename ? String(r.tab3dImageFilename) : undefined,
+    tabPartsImage: r.tabPartsImage ? String(r.tabPartsImage) : undefined,
+    tabPartsImageFilename: r.tabPartsImageFilename ? String(r.tabPartsImageFilename) : undefined,
+    tabVideoImage: r.tabVideoImage ? String(r.tabVideoImage) : undefined,
+    tabVideoImageFilename: r.tabVideoImageFilename ? String(r.tabVideoImageFilename) : undefined,
+    subtitle: r.subtitle ? String(r.subtitle) : undefined,
+    rating: typeof r.rating === "number" ? r.rating : undefined,
+    ratingImage: r.ratingImage ? String(r.ratingImage) : undefined,
+    ratingImageFilename: r.ratingImageFilename ? String(r.ratingImageFilename) : undefined,
+    features: Array.isArray(r.features) ? r.features.filter((f): f is string => typeof f === "string") : [],
+    optionIcons: sanitizeOptionIcons(r.optionIcons),
+    qtyMinusImage: r.qtyMinusImage ? String(r.qtyMinusImage) : undefined,
+    qtyMinusImageFilename: r.qtyMinusImageFilename ? String(r.qtyMinusImageFilename) : undefined,
+    qtyPlusImage: r.qtyPlusImage ? String(r.qtyPlusImage) : undefined,
+    qtyPlusImageFilename: r.qtyPlusImageFilename ? String(r.qtyPlusImageFilename) : undefined,
+    addToCartText: r.addToCartText ? String(r.addToCartText) : PRODUCT_DETAIL_DEFAULTS.addToCartText,
+  };
 }

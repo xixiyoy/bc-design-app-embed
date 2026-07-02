@@ -8,13 +8,23 @@ import {
   saveNavigationConfig,
   loadBannerConfig,
   saveBannerConfig,
+  loadProductDetailConfig,
+  saveProductDetailConfig,
+  loadProductDetailGlobalModeConfig,
+  saveProductDetailGlobalModeConfig,
+  sanitizeProductDetailConfig,
 } from "./config.server";
 import { adminGraphql } from "./admin-graphql.server";
 import {
   loadNavigationConfig as loadLegacyNavigation,
   loadBannerConfig as loadLegacyBanner,
 } from "./metaobjects.server";
-import { NAVIGATION_DEFAULTS, BANNER_DEFAULTS } from "./config-types";
+import {
+  NAVIGATION_DEFAULTS,
+  BANNER_DEFAULTS,
+  PRODUCT_DETAIL_DEFAULTS,
+  PRODUCT_DETAIL_GLOBAL_MODE_DEFAULTS,
+} from "./config-types";
 
 vi.mock("./admin-graphql.server", () => ({
   adminGraphql: vi.fn(),
@@ -572,5 +582,150 @@ describe("saveNavigationConfig & saveBannerConfig Errors", () => {
     });
 
     await expect(saveNavigationConfig({} as any, NAVIGATION_DEFAULTS)).rejects.toThrow("Invalid JSON format");
+  });
+});
+
+describe("sanitizeProductDetailConfig", () => {
+  it("returns defaults for invalid input", () => {
+    expect(sanitizeProductDetailConfig(null)).toEqual(PRODUCT_DETAIL_DEFAULTS);
+    expect(sanitizeProductDetailConfig("bad")).toEqual(PRODUCT_DETAIL_DEFAULTS);
+  });
+
+  it("sanitizes valid product detail config", () => {
+    const result = sanitizeProductDetailConfig({
+      enabled: true,
+      subtitle: "Test subtitle",
+      rating: 4.5,
+      features: ["Feature A", 123, null],
+      optionIcons: [
+        { optionName: "Size", optionValue: "M", iconGid: "gid://shopify/MediaImage/1" },
+        null,
+      ],
+      addToCartText: "Buy now",
+    });
+    expect(result.enabled).toBe(true);
+    expect(result.subtitle).toBe("Test subtitle");
+    expect(result.rating).toBe(4.5);
+    expect(result.features).toEqual(["Feature A"]);
+    expect(result.optionIcons).toEqual([
+      { optionName: "Size", optionValue: "M", iconGid: "gid://shopify/MediaImage/1", iconFilename: undefined },
+    ]);
+    expect(result.addToCartText).toBe("Buy now");
+  });
+});
+
+describe("loadProductDetailConfig", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns defaults when metafield is missing", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      product: { id: "gid://shopify/Product/1", metafield: null },
+    });
+    const config = await loadProductDetailConfig({} as any, "gid://shopify/Product/1");
+    expect(config).toEqual(PRODUCT_DETAIL_DEFAULTS);
+  });
+
+  it("returns sanitized config from metafield", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      product: {
+        id: "gid://shopify/Product/1",
+        metafield: { jsonValue: { enabled: true, features: ["A"], optionIcons: [] } },
+      },
+    });
+    const config = await loadProductDetailConfig({} as any, "gid://shopify/Product/1");
+    expect(config.enabled).toBe(true);
+    expect(config.features).toEqual(["A"]);
+  });
+});
+
+describe("saveProductDetailConfig", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("saves config to product metafield", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      metafieldsSet: { userErrors: [] },
+    });
+    await saveProductDetailConfig({} as any, "gid://shopify/Product/1", {
+      ...PRODUCT_DETAIL_DEFAULTS,
+      enabled: true,
+    });
+    expect(adminGraphql).toHaveBeenCalledWith(
+      {},
+      expect.stringContaining("BcDesignSetConfig"),
+      expect.objectContaining({
+        metafields: [
+          expect.objectContaining({
+            ownerId: "gid://shopify/Product/1",
+            key: "product_detail_config",
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("throws on userErrors", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      metafieldsSet: { userErrors: [{ message: "Save failed" }] },
+    });
+    await expect(
+      saveProductDetailConfig({} as any, "gid://shopify/Product/1", PRODUCT_DETAIL_DEFAULTS),
+    ).rejects.toThrow();
+  });
+});
+
+describe("loadProductDetailGlobalModeConfig", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns defaults when metafield is missing", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: { id: "gid://shopify/AppInstallation/1", metafield: null },
+    });
+    const config = await loadProductDetailGlobalModeConfig({} as any);
+    expect(config).toEqual(PRODUCT_DETAIL_GLOBAL_MODE_DEFAULTS);
+  });
+
+  it("returns valid mode from metafield", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: {
+        id: "gid://shopify/AppInstallation/1",
+        metafield: { jsonValue: { mode: "all_on" } },
+      },
+    });
+    const config = await loadProductDetailGlobalModeConfig({} as any);
+    expect(config.mode).toBe("all_on");
+  });
+
+  it("returns defaults for invalid mode", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: {
+        id: "gid://shopify/AppInstallation/1",
+        metafield: { jsonValue: { mode: "invalid" } },
+      },
+    });
+    const config = await loadProductDetailGlobalModeConfig({} as any);
+    expect(config).toEqual(PRODUCT_DETAIL_GLOBAL_MODE_DEFAULTS);
+  });
+});
+
+describe("saveProductDetailGlobalModeConfig", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("saves global mode to app installation metafield", async () => {
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      currentAppInstallation: { id: "gid://shopify/AppInstallation/1" },
+    });
+    vi.mocked(adminGraphql).mockResolvedValueOnce({
+      metafieldsSet: { userErrors: [] },
+    });
+    await saveProductDetailGlobalModeConfig({} as any, { mode: "off" });
+    expect(adminGraphql).toHaveBeenCalledTimes(2);
   });
 });
