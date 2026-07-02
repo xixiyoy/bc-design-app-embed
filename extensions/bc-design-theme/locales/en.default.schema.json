@@ -5,6 +5,9 @@
     },
     "banner_carousel": {
       "name": "BC Design Banner"
+    },
+    "product_detail": {
+      "name": "Product detail"
     }
   }
 }
