@@ -4,7 +4,7 @@ import type {
   HeadersFunction,
   LoaderFunctionArgs,
 } from "react-router";
-import { useFetcher, useLoaderData, useRevalidator } from "react-router";
+import { useFetcher, useLoaderData, useNavigate, useRevalidator } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
@@ -347,6 +347,7 @@ export default function ProductDetailPage() {
   } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const revalidator = useRevalidator();
+  const navigate = useNavigate();
   const shopify = useAppBridge();
 
   const [globalMode, setGlobalMode] = useState<ProductDetailGlobalMode>(globalConfig.mode);
@@ -520,10 +521,31 @@ export default function ProductDetailPage() {
     fetcher.submit(formData, { method: "post", encType: "multipart/form-data" });
   };
 
+  const runSearch = () => {
+    const query = searchInput.trim();
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    navigate(`/app/product-detail${params.size ? `?${params.toString()}` : ""}`);
+  };
+
+  const handleSearch = (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+    runSearch();
+  };
+
+  const handleSelectProduct = (productId: string) => {
+    if (!productId) return;
+    const params = new URLSearchParams();
+    params.set("product", productId);
+    if (searchQuery) params.set("q", searchQuery);
+    navigate(`/app/product-detail?${params.toString()}`);
+  };
+
   return (
     <s-page heading="Product Detail">
       <s-button
         slot="primary-action"
+        variant="primary"
         onClick={handleSave}
         {...(isSubmitting ? { loading: true } : {})}
       >
@@ -533,6 +555,7 @@ export default function ProductDetailPage() {
       <s-section heading="Global mode">
         <s-stack direction="block" gap="base">
           <s-select
+            label="Global mode"
             value={globalMode}
             onChange={(event) =>
               setGlobalMode(event.currentTarget.value as ProductDetailGlobalMode)
@@ -550,17 +573,24 @@ export default function ProductDetailPage() {
 
       <s-section heading="Select product">
         <s-stack direction="block" gap="base">
-          <form method="get">
+          <form onSubmit={handleSearch}>
             <s-stack direction="inline" gap="base">
               <s-text-field
+                label="Search products"
                 name="q"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.currentTarget.value)}
                 placeholder="Search products..."
               />
-              <s-button type="submit">Search</s-button>
+              <s-button type="button" onClick={runSearch}>
+                Search
+              </s-button>
             </s-stack>
           </form>
+
+          {searchQuery && products.length === 0 && (
+            <s-text tone="neutral">No products found for &quot;{searchQuery}&quot;.</s-text>
+          )}
 
           {selectedProduct && (
             <s-box padding="base" borderWidth="base" borderRadius="base" background="subdued">
@@ -573,13 +603,9 @@ export default function ProductDetailPage() {
 
           {products.length > 0 && (
             <s-select
+              label="Select a product"
               value={selectedProductId}
-              onChange={(event) => {
-                const productId = event.currentTarget.value;
-                if (productId) {
-                  window.location.href = `/app/product-detail?product=${encodeURIComponent(productId)}`;
-                }
-              }}
+              onChange={(event) => handleSelectProduct(event.currentTarget.value)}
             >
               <s-option value="">Select a product</s-option>
               {products.map((p) => (

@@ -960,6 +960,7 @@ export default function BannerPage() {
     <s-page heading="Banner">
       <s-button
         slot="primary-action"
+        variant="primary"
         onClick={handleSave}
         {...(isSubmitting ? { loading: true } : {})}
       >

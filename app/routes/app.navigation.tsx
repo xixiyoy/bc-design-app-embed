@@ -672,6 +672,7 @@ export default function NavigationPage() {
     <s-page heading="Navigation">
       <s-button
         slot="primary-action"
+        variant="primary"
         onClick={handleSave}
         {...(isSubmitting ? { loading: true } : {})}
       >
