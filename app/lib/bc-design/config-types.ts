@@ -180,3 +180,68 @@ export function missingMetaobjectDefinitionsMessage(missing: string[]) {
   const labels = missing.map((type) => type.replace(/^\$app:/, "")).join(", ");
   return `This store is missing app metaobject definitions for the current app install (${labels}). Run "shopify app deploy --config render", then uninstall and reinstall the app on this store so Shopify syncs the definitions and new access scopes.`;
 }
+
+export type ProductDetailGlobalMode = "off" | "all_on" | "per_product";
+
+export type ProductDetailGlobalModeConfig = {
+  mode: ProductDetailGlobalMode;
+};
+
+export const PRODUCT_DETAIL_GLOBAL_MODE_DEFAULTS: ProductDetailGlobalModeConfig = {
+  mode: "per_product",
+};
+
+export type ProductOptionIconConfig = {
+  optionName: string;
+  optionValue: string;
+  iconGid?: string;
+  iconFilename?: string;
+};
+
+export type ProductDetailConfig = {
+  enabled: boolean;
+
+  // Media stage icons
+  three60BadgeImage?: string;
+  three60BadgeImageFilename?: string;
+  playButtonImage?: string;
+  playButtonImageFilename?: string;
+  zoomButtonImage?: string;
+  zoomButtonImageFilename?: string;
+
+  // Bottom tab icons
+  tab3dImage?: string;
+  tab3dImageFilename?: string;
+  tabPartsImage?: string;
+  tabPartsImageFilename?: string;
+  tabVideoImage?: string;
+  tabVideoImageFilename?: string;
+
+  // Product info
+  subtitle?: string;
+  rating?: number;
+  ratingImage?: string;
+  ratingImageFilename?: string;
+
+  // Features
+  features: string[];
+
+  // Variant option icons
+  optionIcons: ProductOptionIconConfig[];
+
+  // Quantity stepper icons
+  qtyMinusImage?: string;
+  qtyMinusImageFilename?: string;
+  qtyPlusImage?: string;
+  qtyPlusImageFilename?: string;
+
+  // CTA
+  addToCartText?: string;
+};
+
+export const PRODUCT_DETAIL_DEFAULTS: ProductDetailConfig = {
+  enabled: false,
+  features: [],
+  optionIcons: [],
+  addToCartText: "Add to cart",
+};
