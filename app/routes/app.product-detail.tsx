@@ -4,7 +4,7 @@ import type {
   HeadersFunction,
   LoaderFunctionArgs,
 } from "react-router";
-import { useFetcher, useLoaderData, useNavigate, useRevalidator } from "react-router";
+import { useFetcher, useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
@@ -348,6 +348,7 @@ export default function ProductDetailPage() {
   const fetcher = useFetcher<typeof action>();
   const revalidator = useRevalidator();
   const navigate = useNavigate();
+  const location = useLocation();
   const shopify = useAppBridge();
 
   const [globalMode, setGlobalMode] = useState<ProductDetailGlobalMode>(globalConfig.mode);
@@ -523,9 +524,14 @@ export default function ProductDetailPage() {
 
   const runSearch = () => {
     const query = searchInput.trim();
-    const params = new URLSearchParams();
-    if (query) params.set("q", query);
-    navigate(`/app/product-detail${params.size ? `?${params.toString()}` : ""}`);
+    const params = new URLSearchParams(location.search);
+    if (query) {
+      params.set("q", query);
+    } else {
+      params.delete("q");
+    }
+    params.delete("product");
+    navigate(`/app/product-detail?${params.toString()}`);
   };
 
   const handleSearch = (event: { preventDefault: () => void }) => {
@@ -535,9 +541,11 @@ export default function ProductDetailPage() {
 
   const handleSelectProduct = (productId: string) => {
     if (!productId) return;
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(location.search);
     params.set("product", productId);
-    if (searchQuery) params.set("q", searchQuery);
+    if (searchQuery) {
+      params.set("q", searchQuery);
+    }
     navigate(`/app/product-detail?${params.toString()}`);
   };
 
@@ -547,7 +555,7 @@ export default function ProductDetailPage() {
         slot="primary-action"
         variant="primary"
         onClick={handleSave}
-        {...(isSubmitting ? { loading: true } : {})}
+        loading={isSubmitting || undefined}
       >
         Save
       </s-button>

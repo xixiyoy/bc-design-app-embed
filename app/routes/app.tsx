@@ -1,5 +1,5 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Outlet, useLoaderData, useRouteError } from "react-router";
+import { Outlet, useLoaderData, useLocation, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
@@ -14,14 +14,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function App() {
   const { apiKey } = useLoaderData<typeof loader>();
+  const location = useLocation();
+  const query = location.search;
 
   return (
     <AppProvider embedded apiKey={apiKey}>
       <s-app-nav>
-        <s-link href="/app">Home</s-link>
-        <s-link href="/app/navigation">Navigation</s-link>
-        <s-link href="/app/banner">Banner</s-link>
-        <s-link href="/app/product-detail">Product Detail</s-link>
+        <s-link href={`/app${query}`} {...({ rel: "home" } as object)}>
+          Home
+        </s-link>
+        <s-link href={`/app/navigation${query}`}>Navigation</s-link>
+        <s-link href={`/app/banner${query}`}>Banner</s-link>
+        <s-link href={`/app/product-detail${query}`}>Product Detail</s-link>
       </s-app-nav>
       <Outlet />
     </AppProvider>

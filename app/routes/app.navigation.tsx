@@ -674,14 +674,14 @@ export default function NavigationPage() {
         slot="primary-action"
         variant="primary"
         onClick={handleSave}
-        {...(isSubmitting ? { loading: true } : {})}
+        loading={isSubmitting || undefined}
       >
         Save
       </s-button>
       <s-button
         slot="secondary-actions"
         onClick={handleSetupProductBadges}
-        {...(isSubmitting ? { loading: true } : {})}
+        loading={isSubmitting || undefined}
       >
         Set up product badges
       </s-button>

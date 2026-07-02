@@ -962,7 +962,7 @@ export default function BannerPage() {
         slot="primary-action"
         variant="primary"
         onClick={handleSave}
-        {...(isSubmitting ? { loading: true } : {})}
+        loading={isSubmitting || undefined}
       >
         Save
       </s-button>

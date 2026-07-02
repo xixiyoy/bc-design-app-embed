@@ -20,6 +20,7 @@ export default function Index() {
         <s-stack direction="inline" gap="base">
           <s-link href="/app/navigation">Configure navigation</s-link>
           <s-link href="/app/banner">Configure banner</s-link>
+          <s-link href="/app/product-detail">Configure product detail</s-link>
         </s-stack>
       </s-section>
     </s-page>
