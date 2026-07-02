@@ -3,6 +3,7 @@
   const REVEAL_FALLBACK_MS = 3000;
   const NAV_SELECTOR = '[data-bc-design-embed="navigation"]';
   const BANNER_SELECTOR = '[data-bc-design-embed="banner"]';
+  const PRODUCT_DETAIL_SELECTOR = '[data-bc-design-embed="product-detail"]';
   const BLOCK_SELECTOR = '[id^="shopify-block-"]';
 
   let revealFallbackTimer = null;
@@ -146,8 +147,10 @@
     try {
       const navEmbed = document.querySelector(NAV_SELECTOR);
       const bannerEmbed = document.querySelector(BANNER_SELECTOR);
+      const pdEmbed = document.querySelector(PRODUCT_DETAIL_SELECTOR);
       const navBlock = getBlockWrapper(navEmbed);
       const bannerBlock = getBlockWrapper(bannerEmbed);
+      const pdBlock = getBlockWrapper(pdEmbed);
       const anchor = findInsertAnchor();
 
       if (!isPlacementCorrect(navBlock, bannerBlock, anchor)) {
@@ -157,6 +160,22 @@
           ? { node: navBlock, position: 'after' }
           : anchor;
         moveBlock(bannerBlock, bannerAnchor);
+      }
+
+      if (pdBlock) {
+        const pageTarget = document.querySelector('main, #MainContent, [role="main"]');
+        if (pageTarget) {
+          if (pageTarget.firstElementChild !== pdBlock) {
+            pageTarget.insertBefore(pdBlock, pageTarget.firstElementChild);
+          }
+        } else {
+          const sectionTarget = document.querySelector('.shopify-section-main-product, #shopify-section-main-product');
+          if (sectionTarget?.parentNode) {
+            sectionTarget.parentNode.insertBefore(pdBlock, sectionTarget);
+          } else {
+            document.body.insertBefore(pdBlock, document.body.firstElementChild);
+          }
+        }
       }
 
       applyBannerSpacing(navEmbed, bannerBlock);

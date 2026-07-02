@@ -165,6 +165,65 @@ describe('bc-design-embed-placement', () => {
     expect(navBlock.nextElementSibling).toBe(bannerBlock);
     expect(main.previousElementSibling).toBe(bannerBlock);
   });
+
+  it('places product detail at top of main when main exists', async () => {
+    const window = new Window();
+    const document = window.document;
+    mountGlobals(window);
+    document.body.innerHTML = '<a href="#MainContent" class="skip-to-content">Skip</a><main id="MainContent"></main><div id="shopify-block-pd"><div data-bc-design-embed="product-detail" class="bc-design-embed--pending"></div></div>';
+    vi.resetModules();
+    await import('./bc-design-embed-placement.js');
+    window.BCDesignEmbedPlacement.run();
+    const main = document.getElementById('MainContent');
+    const pdBlock = document.getElementById('shopify-block-pd');
+    expect(main.firstElementChild).toBe(pdBlock);
+  });
+
+  it('places product detail before native product section when main absent', async () => {
+    const window = new Window();
+    const document = window.document;
+    mountGlobals(window);
+    document.body.innerHTML = '<div class="shopify-section-main-product">Native Product</div><div id="shopify-block-pd"><div data-bc-design-embed="product-detail" class="bc-design-embed--pending"></div></div>';
+    vi.resetModules();
+    await import('./bc-design-embed-placement.js');
+    window.BCDesignEmbedPlacement.run();
+    const nativeSection = document.querySelector('.shopify-section-main-product');
+    const pdBlock = document.getElementById('shopify-block-pd');
+    expect(nativeSection.previousElementSibling).toBe(pdBlock);
+  });
+
+  it('places product detail at body start as fallback', async () => {
+    const window = new Window();
+    const document = window.document;
+    mountGlobals(window);
+    document.body.innerHTML = '<div>Other</div><div id="shopify-block-pd"><div data-bc-design-embed="product-detail" class="bc-design-embed--pending"></div></div>';
+    vi.resetModules();
+    await import('./bc-design-embed-placement.js');
+    window.BCDesignEmbedPlacement.run();
+    const pdBlock = document.getElementById('shopify-block-pd');
+    expect(document.body.firstElementChild).toBe(pdBlock);
+  });
+
+  it('coexists: nav, banner, and product detail all placed correctly', async () => {
+    const window = new Window();
+    const document = window.document;
+    mountGlobals(window);
+    document.body.innerHTML = '<a href="#MainContent" class="skip-to-content">Skip</a><main id="MainContent"></main>' +
+      '<div id="shopify-block-nav"><div data-bc-design-embed="navigation" class="bc-design-embed--pending"><nav class="navbar" style="height:80px"></nav></div></div>' +
+      '<div id="shopify-block-banner"><div data-bc-design-embed="banner" class="bc-design-embed--pending"></div></div>' +
+      '<div id="shopify-block-pd"><div data-bc-design-embed="product-detail" class="bc-design-embed--pending"></div></div>';
+    vi.resetModules();
+    await import('./bc-design-embed-placement.js');
+    window.BCDesignEmbedPlacement.run();
+    const skip = document.querySelector('.skip-to-content');
+    const navBlock = document.getElementById('shopify-block-nav');
+    const bannerBlock = document.getElementById('shopify-block-banner');
+    const main = document.getElementById('MainContent');
+    const pdBlock = document.getElementById('shopify-block-pd');
+    expect(skip.nextElementSibling).toBe(navBlock);
+    expect(navBlock.nextElementSibling).toBe(bannerBlock);
+    expect(main.firstElementChild).toBe(pdBlock);
+  });
 });
 
 describe('bc-design-embed inline reveal fallback', () => {
