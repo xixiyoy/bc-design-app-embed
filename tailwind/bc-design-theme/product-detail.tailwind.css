@@ -3,6 +3,37 @@
 @import "tailwindcss/theme.css" layer(theme);
 @reference "tailwindcss";
 
+/* ── Base Variables (Fluid scale from prototype) ── */
+:root {
+  --space-3xs: clamp(0.125rem, 0.208vw, 0.3125rem);   /* 5px   */
+  --space-2xs: clamp(0.25rem,  0.417vw,  0.625rem);    /* 10px  */
+  --space-xs:  clamp(0.25rem,  0.833vw,  1.25rem);     /* 20px  */
+  --space-sm:  clamp(0.5rem,   1.25vw,   1.875rem);    /* 30px  */
+  --space-md:  clamp(0.5rem,   1.667vw,  2.5rem);      /* 40px  */
+  --space-lg:  clamp(0.75rem,  2.5vw,    3.75rem);     /* 60px  */
+  --space-xl:  clamp(1rem,     3.333vw,  5rem);        /* 80px  */
+  --space-2xl: clamp(1.25rem,  4.167vw,  6.25rem);     /* 100px */
+  --space-3xl: clamp(2rem,     6.667vw,  10rem);       /* 160px */
+  --space-4xl: clamp(2.5rem,   8.333vw,  12.5rem);     /* 200px */
+
+  --text-2xs:  clamp(0.5rem,   0.417vw,  0.875rem);    /* 14px  */
+  --text-xs:   clamp(0.625rem, 0.625vw,  1.25rem);     /* 20px  */
+  --text-sm:   clamp(0.75rem,  0.833vw,  1.5rem);      /* 24px  */
+  --text-base: clamp(0.875rem, 1.042vw,  1.75rem);     /* 28px  */
+  --text-lg:   clamp(0.875rem, 1.333vw,  2rem);        /* 32px  */
+  --text-xl:   clamp(1rem,     1.667vw,  2.5rem);      /* 40px  */
+  --text-2xl:  clamp(1.25rem,  2.5vw,    3.75rem);     /* 60px  */
+  --text-3xl:  clamp(1.5rem,   3.333vw,  5rem);        /* 80px  */
+  --text-4xl:  clamp(2rem,     4.167vw,  6.25rem);     /* 100px */
+
+  --radius-sm:  clamp(0.25rem,  0.333vw,  0.5rem);     /* 8px   */
+  --radius-md:  clamp(0.25rem,  0.5vw,    0.75rem);    /* 12px  */
+  --radius-lg:  clamp(0.75rem,  4.167vw,  6.25rem);    /* 100px (pill) */
+  --radius-xl:  clamp(0.25rem,  8.333vw,  12.5rem);    /* 200px (full) */
+
+  --container-px: clamp(1rem, 2.083vw, 5rem);
+}
+
 @theme {
   --color-bc-pd-ink: oklch(21.08% 0.018 285.94);
   --color-bc-pd-ink-secondary: oklch(46.4% 0.026 285.94);
@@ -11,211 +42,413 @@
   --color-bc-pd-surface: oklch(97.88% 0.005 286.28);
   --color-bc-pd-border: oklch(88.39% 0.015 285.94);
   --color-bc-pd-neutral-100: oklch(92% 0.005 264);
+
+  /* Prototype Colors */
+  --color-ink:           oklch(0%   0     0);
+  --color-ink-secondary: oklch(55%  0.005 264);
+  --color-ink-tertiary:  oklch(70%  0.005 264);
+  --color-ink-inverse:   oklch(100% 0     0);
+
+  --color-surface:           oklch(100% 0     0);
+  --color-background:        oklch(97%  0.005 264);
+  --color-background-hover:  oklch(92%  0.005 264);
+  --color-background-active: oklch(88%  0.005 264);
+  --color-overlay:           oklch(0%   0     0 / 0.3);
+
+  --color-primary-50:  oklch(95%  0.05  145);
+  --color-primary-100: oklch(90%  0.1   145);
+  --color-primary-200: oklch(80%  0.15  145);
+  --color-primary-500: oklch(65%  0.22  145);
+  --color-primary-600: oklch(58%  0.24  145);
+  --color-primary-700: oklch(50%  0.22  145);
+
+  --color-accent-50:  oklch(92%  0.05  25);
+  --color-accent-100: oklch(88%  0.08  25);
+  --color-accent-500: oklch(65%  0.22  25);
+  --color-accent-600: oklch(58%  0.24  25);
+
+  --color-neutral-50:  oklch(97%  0.005 264);
+  --color-neutral-100: oklch(92%  0.005 264);
+  --color-neutral-200: oklch(85%  0.005 264);
+  --color-neutral-300: oklch(78%  0.005 264);
+  --color-neutral-400: oklch(70%  0.005 264);
+  --color-neutral-500: oklch(55%  0.005 264);
+  --color-neutral-600: oklch(45%  0.005 264);
+  --color-neutral-700: oklch(35%  0.005 264);
+  --color-neutral-800: oklch(25%  0.005 264);
+  --color-neutral-900: oklch(15%  0.005 264);
+
+  --color-border:      oklch(78%  0.005 264);
+  --color-border-strong: oklch(55%  0.005 264);
+
+  /* Fluid spacing mapped to Tailwind spacing utilities */
+  --spacing-3xs: var(--space-3xs);
+  --spacing-2xs: var(--space-2xs);
+  --spacing-xs:  var(--space-xs);
+  --spacing-sm:  var(--space-sm);
+  --spacing-md:  var(--space-md);
+  --spacing-lg:  var(--space-lg);
+  --spacing-xl:  var(--space-xl);
+  --spacing-2xl: var(--space-2xl);
+  --spacing-3xl: var(--space-3xl);
+  --spacing-4xl: var(--space-4xl);
+
+  /* Fluid typography mapped to Tailwind text utilities */
+  --text-2xs:  var(--text-2xs);
+  --text-xs:   var(--text-xs);
+  --text-sm:   var(--text-sm);
+  --text-base: var(--text-base);
+  --text-lg:   var(--text-lg);
+  --text-xl:   var(--text-xl);
+  --text-2xl:  var(--text-2xl);
+  --text-3xl:  var(--text-3xl);
+  --text-4xl:  var(--text-4xl);
+
+  /* Fluid border-radius mapped to Tailwind radius utilities */
+  --radius-sm:  var(--radius-sm);
+  --radius-md:  var(--radius-md);
+  --radius-lg:  var(--radius-lg);
+  --radius-xl:  var(--radius-xl);
+
+  /* Font family */
+  --font-sans: "PingFang SC", "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
 }
 
 @layer components {
   .bc-product-detail {
-    @apply w-full bg-bc-pd-surface;
-    padding: clamp(24px, 2.778vw, 40px) clamp(16px, 4.167vw, 60px);
+    @apply w-full bg-surface;
+    padding-top: var(--space-3xl);
+    padding-bottom: var(--space-3xl);
+  }
+
+  .container-fluid {
+    @apply w-full mx-auto;
+    max-width: 1200px; /* Precise Figma layout width constraint */
+    padding-left: var(--container-px);
+    padding-right: var(--container-px);
   }
 
   .bc-product-detail__inner {
     @apply grid mx-auto;
-    gap: clamp(1rem, 3.333vw, 5rem);
-    max-width: 2400px;
+    gap: var(--space-xl);
+    max-width: 1200px;
     grid-template-columns: 1fr;
   }
 
-  @media (min-width: 990px) {
+  @media (min-width: 1200px) {
     .bc-product-detail__inner {
-      grid-template-columns: 58fr 38fr;
+      grid-template-columns: 700fr 460fr; /* Precise Figma Left (700px) / Right (460px) column ratio */
+      gap: 40px; /* Precise Figma column spacing */
     }
   }
 
   .bc-product-detail__media {
-    @apply flex flex-col;
-    gap: clamp(0.5rem, 1.25vw, 1.875rem);
+    @apply flex flex-col items-center;
+    gap: 30px; /* Figma: mt-[30px] for tabs */
   }
 
-  .bc-product-media__stage {
-    @apply relative rounded-lg overflow-hidden;
-    background: var(--color-bc-pd-neutral-100);
+  .product-image-stage {
+    @apply w-full relative flex items-center justify-center overflow-hidden;
     aspect-ratio: 1 / 1;
+    background-color: rgba(122, 123, 126, 0.1); /* Precise Figma background bg-[rgba(122,123,126,0.1)] */
+    border-radius: 6px; /* Precise Figma rounded-[6px] */
   }
 
-  .bc-product-media__hero {
-    @apply flex items-center justify-center w-full h-full;
+  @media (min-width: 1200px) {
+    .product-image-stage {
+      width: 700px;
+      height: 700px;
+    }
   }
 
-  .bc-product-media__hero img {
-    @apply w-full h-full object-contain;
+  .product-hero-container {
+    @apply absolute;
+    /* Precise percentage layout corresponding to Figma: w-[341.39px] h-[500px] top-[100px] left-[208.61px] in 700px stage */
+    width: 48.77%;
+    height: 71.43%;
+    top: 14.28%;
+    left: 29.8%;
   }
 
-  .bc-product-media__placeholder {
-    @apply w-full h-full bg-bc-pd-border/30;
+  @media (min-width: 1200px) {
+    .product-hero-container {
+      width: 341.39px;
+      height: 500px;
+      top: 100px;
+      left: 208.61px;
+    }
+  }
+
+  .product-hero-img {
+    @apply absolute top-0 left-0 object-contain;
+    /* Precise percentage layout corresponding to Figma: w-[282.79px] in 341.39px container */
+    width: 82.83%;
+    height: 100%;
   }
 
   .bc-badge-360 {
-    @apply absolute top-4 left-4 z-10 flex items-center justify-center;
-    background: var(--color-bc-pd-primary-500);
-    width: clamp(60px, 5vw, 120px);
-    height: clamp(60px, 5vw, 120px);
+    @apply absolute top-0 left-0 z-10 flex items-center justify-center;
+    background: rgba(0, 174, 66, 1); /* Precise Figma bg-[rgba(0,174,66,1)] */
+    width: 60px; /* Precise Figma w-[60px] h-[60px] */
+    height: 60px;
   }
 
   .bc-badge-360 img {
-    @apply w-8 h-auto;
+    width: 23px; /* Precise Figma w-[23px] h-[30px] */
+    height: 30px;
+    object-fit: contain;
   }
 
   .bc-play-btn {
-    @apply absolute z-10 p-0 border-0 cursor-pointer flex items-center justify-center rounded-full;
-    bottom: 20%;
-    right: 20%;
-    background: oklch(0% 0 0 / 0.3);
-    width: clamp(80px, 8.33vw, 200px);
-    height: clamp(80px, 8.33vw, 200px);
+    @apply absolute rounded-full flex items-center justify-center;
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(0, 0, 0, 0.3); /* Precise Figma bg-[rgba(0,0,0,0.3)] */
+    /* Precise percentage layout corresponding to Figma: w-[100px] h-[100px] top-[306px] left-[241.39px] in 341.39px * 500px container */
+    width: 29.29%;
+    height: 20%;
+    top: 61.2%;
+    left: 70.71%;
+  }
+
+  @media (min-width: 1200px) {
+    .bc-play-btn {
+      width: 100px;
+      height: 100px;
+      top: 306px;
+      left: 241.39px;
+    }
+  }
+
+  .bc-play-btn:hover {
+    background-color: rgba(0, 0, 0, 0.45);
   }
 
   .bc-play-btn img {
-    @apply w-10 h-auto;
+    width: 28px; /* Precise Figma w-[28px] h-[30px] */
+    height: 30px;
+    object-fit: contain;
   }
 
   .bc-zoom-btn {
-    @apply absolute bottom-4 right-4 z-10 p-0 border-0 cursor-pointer flex items-center justify-center rounded-full;
-    background: oklch(0% 0 0 / 0.3);
-    width: clamp(50px, 4.17vw, 100px);
-    height: clamp(50px, 4.17vw, 100px);
+    @apply absolute rounded-full flex items-center justify-center z-10;
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(0, 0, 0, 0.3); /* Precise Figma bg-[rgba(0,0,0,0.3)] */
+    /* Precise percentage layout corresponding to Figma: w-[50px] h-[50px] top-[630px] left-[630px] in 700px stage */
+    width: 7.14%;
+    height: 7.14%;
+    top: 90%;
+    left: 90%;
+  }
+
+  @media (min-width: 1200px) {
+    .bc-zoom-btn {
+      width: 50px;
+      height: 50px;
+      top: 630px;
+      left: 630px;
+    }
+  }
+
+  .bc-zoom-btn:hover {
+    background-color: rgba(0, 0, 0, 0.45);
   }
 
   .bc-zoom-btn img {
-    @apply w-6 h-auto;
+    width: 20px; /* Precise Figma w-[20px] h-[20px] */
+    height: 20px;
+    object-fit: contain;
   }
 
   .bc-product-media__tabs {
-    @apply flex;
-    gap: clamp(1.25rem, 4.167vw, 6.25rem);
+    @apply flex flex-row items-center justify-center flex-wrap;
+    gap: 10px; /* Precise Figma tab gap */
+    margin-top: 30px; /* Precise Figma margin mt-[30px] */
+  }
+
+  .btn-pill, .bc-tab, .bc-add-to-cart {
+    @apply inline-flex items-center justify-center;
+    border-radius: 100px; /* Precise Figma rounded-[100px] */
+    border: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    cursor: pointer;
+    user-select: none;
+    gap: 10px;
+  }
+
+  .btn-pill:active, .bc-tab:active, .bc-add-to-cart:active {
+    transform: scale(0.98);
   }
 
   .bc-tab {
-    @apply flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-colors;
-    border-color: var(--color-bc-pd-border);
-    background: white;
-    color: var(--color-bc-pd-ink);
+    background: rgba(122, 123, 126, 0.1);
+    color: rgba(0, 0, 0, 1);
+    font-size: 16px;
+    font-family: var(--font-sans);
+    height: 54px;
+  }
+
+  .bc-tab[data-tab="3d"] {
+    width: 103px; /* Precise Figma tab width */
+  }
+
+  .bc-tab[data-tab="parts"] {
+    width: 146px; /* Precise Figma tab width */
+  }
+
+  .bc-tab[data-tab="video"] {
+    width: 128px; /* Precise Figma tab width */
   }
 
   .bc-tab--active {
-    background: var(--color-bc-pd-ink-secondary);
-    border-color: var(--color-bc-pd-ink-secondary);
-    color: white;
-  }
-
-  .bc-tab img {
-    @apply w-5 h-5 object-contain;
+    background: rgba(122, 123, 126, 1) !important;
+    color: rgba(255, 255, 255, 1) !important;
   }
 
   .bc-product-detail__info {
     @apply flex flex-col;
-    gap: clamp(0.75rem, 2.5vw, 3.75rem);
+    width: 100%;
+  }
+
+  @media (min-width: 1200px) {
+    .bc-product-detail__info {
+      width: 460px; /* Precise Figma right section width */
+    }
   }
 
   .bc-product-title {
-    @apply font-semibold m-0;
-    font-size: clamp(2rem, 4.167vw, 6.25rem);
-    color: var(--color-bc-pd-ink);
+    @apply font-semibold m-0 leading-tight;
+    font-size: 30px; /* Precise Figma text-[30px] */
+    color: rgba(0, 0, 0, 1);
+    font-family: var(--font-sans);
   }
 
   .bc-product-subtitle-row {
-    @apply flex items-center flex-wrap;
-    gap: clamp(0.25rem, 0.833vw, 1.25rem);
-    color: var(--color-bc-pd-ink-secondary);
+    @apply flex items-center justify-between;
+    margin-top: 20px; /* Precise Figma mt-[20px] */
+    height: 21px; /* Precise Figma h-[21px] */
+  }
+
+  .bc-product-subtitle-row span {
+    font-size: 14px; /* Precise Figma text-[14px] */
+    color: rgba(122, 123, 126, 1);
+    font-family: var(--font-sans);
   }
 
   .bc-rating {
     @apply font-semibold;
-    color: var(--color-bc-pd-accent-500);
+    color: rgba(122, 123, 126, 1) !important;
+    font-size: 14px;
+  }
+
+  .bc-product-subtitle-row img {
+    width: 14px; /* Precise Figma w-[14px] h-[14px] */
+    height: 14px;
+    object-fit: contain;
+    margin-left: 4px;
+    align-self: center;
   }
 
   .bc-features-card {
-    @apply rounded-lg;
-    background: var(--color-bc-pd-surface);
-    padding: clamp(24px, 2.5vw, 60px);
+    @apply rounded-[6px]; /* Precise Figma rounded-[6px] */
+    background: rgba(122, 123, 126, 0.1); /* Precise Figma bg-[rgba(122,123,126,0.1)] */
+    padding: 30px; /* Precise Figma pt/pr/pb/pl-[30px] */
+    margin-top: 20px; /* Precise Figma mt-[20px] */
+    box-sizing: border-box;
+    width: 100%;
+    height: 239px; /* Precise Figma height */
   }
 
   .bc-features-card h2 {
-    @apply font-normal m-0 mb-6;
-    font-size: clamp(1rem, 1.667vw, 2.5rem);
-    color: var(--color-bc-pd-ink);
+    @apply font-normal m-0 mb-[19.72px];
+    font-size: 20px; /* Precise Figma text-[20px] */
+    color: rgba(0, 0, 0, 1);
+    font-family: var(--font-sans);
+    line-height: normal;
   }
 
   .bc-features-card ul {
     @apply list-none p-0 m-0 flex flex-col;
-    gap: clamp(0.5rem, 1.667vw, 2.5rem);
+    gap: 8px; /* Standard fallback gap for features */
   }
 
   .bc-features-card li {
     @apply relative;
-    font-size: clamp(0.875rem, 1.042vw, 1.75rem);
-    color: var(--color-bc-pd-ink-secondary);
-    padding-left: clamp(0.75rem, 1.25vw, 1.875rem);
-  }
-
-  .bc-features-card li::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0.6em;
-    width: 0.25em;
-    height: 0.25em;
-    border-radius: 50%;
-    background-color: var(--color-bc-pd-ink-secondary);
+    font-size: 16px; /* Precise Figma text-[16px] */
+    color: rgba(122, 123, 126, 1);
+    font-family: var(--font-sans);
+    line-height: normal;
   }
 
   .bc-product-form {
     @apply flex flex-col;
-    gap: clamp(0.75rem, 2.5vw, 3.75rem);
   }
 
   .bc-option-group h2 {
-    @apply font-normal m-0 mb-4;
-    font-size: clamp(1rem, 1.667vw, 2.5rem);
-    color: var(--color-bc-pd-ink);
+    @apply font-normal m-0 mt-[20px];
+    font-size: 20px; /* Precise Figma text-[20px] */
+    color: rgba(0, 0, 0, 1);
+    font-family: var(--font-sans);
   }
 
   .bc-option-pills {
     @apply flex flex-wrap;
-    gap: clamp(0.25rem, 0.833vw, 1.25rem);
+    gap: 10px; /* Precise option gaps to match figma layout */
+    margin-top: 20px; /* Precise Figma mt-[20px] */
   }
 
-  .bc-option-pill {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-colors bg-white;
-    font-size: clamp(0.875rem, 1.042vw, 1.75rem);
-    border-color: var(--color-bc-pd-ink-secondary);
-    color: var(--color-bc-pd-ink-secondary);
+  .option-pill, .bc-option-pill {
+    @apply inline-flex items-center justify-center;
+    border-radius: 100px; /* Precise Figma rounded-[100px] */
+    border-width: 1px;
+    border-style: solid;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+    user-select: none;
+    gap: 10px;
+    width: 107.5px; /* Precise Figma w-[107.50px] */
+    height: 42px; /* Precise Figma h-[42px] */
   }
 
-  .bc-option-pill:hover:not(:disabled) {
-    border-color: var(--color-bc-pd-ink);
+  .bc-option-pill[data-active="true"] {
+    border-color: rgba(0, 0, 0, 1);
+    color: rgba(0, 0, 0, 1);
   }
 
-  .bc-option-pill--active {
-    border-color: var(--color-bc-pd-ink);
-    color: var(--color-bc-pd-ink);
+  .bc-option-pill[data-active="true"] img {
+    filter: none;
   }
 
-  .bc-option-pill:not(.bc-option-pill--active):not(:disabled):not([data-disabled="true"]) img {
+  .bc-option-pill[data-active="false"] {
+    border-color: rgba(122, 123, 126, 1);
+    color: rgba(122, 123, 126, 1);
+  }
+
+  .bc-option-pill[data-active="false"] span {
+    color: rgba(122, 123, 126, 1);
+  }
+
+  .bc-option-pill[data-active="false"] img {
     filter: grayscale(1) opacity(0.5);
   }
 
-  .bc-option-pill:disabled,
   .bc-option-pill[data-disabled="true"] {
-    @apply opacity-40 cursor-not-allowed;
+    border-color: rgba(122, 123, 126, 0.4);
+    color: rgba(122, 123, 126, 0.4);
+    cursor: not-allowed;
+  }
+
+  .bc-option-pill[data-disabled="true"] span {
+    color: rgba(122, 123, 126, 0.4);
+    text-decoration: line-through;
   }
 
   .bc-option-pill[data-disabled="true"] img {
     filter: grayscale(1) opacity(0.3);
   }
 
-  .bc-option-pill[data-disabled="true"] span {
-    text-decoration: line-through;
+  .bc-option-pill span {
+    font-size: 16px; /* Precise Figma text-[16px] */
+    font-family: var(--font-sans);
   }
 
   .bc-option-pill img {
@@ -224,66 +457,110 @@
 
   .bc-quantity-row {
     @apply flex items-center justify-between;
+    margin-top: 20px; /* Precise Figma mt-[20px] */
+    height: 54px; /* Precise Figma h-[54px] */
+  }
+
+  .bc-quantity-row > span {
+    font-size: 20px; /* Precise Figma text-[20px] */
+    color: rgba(0, 0, 0, 1);
+    font-family: var(--font-sans);
   }
 
   .bc-qty-stepper {
-    @apply inline-flex items-center justify-center gap-8 rounded-full;
-    background: var(--color-bc-pd-surface);
-    padding: clamp(12px, 1.5vw, 24px) clamp(24px, 3vw, 48px);
+    @apply flex items-center justify-center;
+    background: rgba(122, 123, 126, 0.1); /* Precise Figma bg-[rgba(122,123,126,0.1)] */
+    border-radius: 100px; /* Precise Figma rounded-[100px] */
+    padding: 0;
+    gap: 30px; /* Precise Figma gap */
+    width: 147px; /* Precise Figma w-[147px] */
+    height: 54px; /* Precise Figma h-[54px] */
   }
 
   .bc-qty-btn {
-    @apply p-0 bg-transparent border-0 cursor-pointer flex items-center justify-center;
+    @apply flex items-center justify-center opacity-70 hover:opacity-100;
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 14px; /* Precise Figma width */
+    height: 14px;
+    padding: 0;
+  }
+
+  .bc-qty-btn.bc-qty-minus {
+    height: 2.33px; /* Precise Figma minus height */
   }
 
   .bc-qty-btn img {
-    @apply w-5 h-5 object-contain;
+    @apply w-full h-auto object-contain;
   }
 
   .bc-qty-value {
-    @apply font-semibold min-w-[2ch] text-center;
-    font-size: clamp(0.875rem, 1.333vw, 2rem);
-    color: var(--color-bc-pd-ink);
+    @apply text-center;
+    font-size: 16px; /* Precise Figma text-[16px] */
+    color: rgba(0, 0, 0, 1);
+    font-family: var(--font-sans);
+    min-w: 1.5em;
   }
 
   .bc-price-row {
     @apply flex items-center flex-wrap;
-    gap: clamp(0.5rem, 1.667vw, 2.5rem);
+    gap: 10px; /* Precise Figma gap */
+    margin-top: 20px; /* Precise Figma mt-[20px] */
   }
 
   .bc-price-current {
     @apply font-semibold;
-    font-size: clamp(2rem, 4.167vw, 6.25rem);
-    color: var(--color-bc-pd-ink);
+    font-size: 30px; /* Precise Figma text-[30px] */
+    color: rgba(0, 0, 0, 1);
+    font-family: var(--font-sans);
   }
 
   .bc-price-compare {
     @apply line-through;
-    font-size: clamp(0.875rem, 1.042vw, 1.75rem);
-    color: var(--color-bc-pd-ink-secondary);
+    font-size: 16px; /* Precise Figma text-[16px] */
+    color: rgba(122, 123, 126, 1);
+    font-family: var(--font-sans);
   }
 
   .bc-price-save {
-    @apply font-medium px-4 py-2 rounded-lg;
-    font-size: clamp(0.875rem, 1.042vw, 1.75rem);
-    background: oklch(92% 0.05 25);
-    color: var(--color-bc-pd-accent-500);
+    @apply inline-flex items-center justify-center rounded-[4px] whitespace-nowrap;
+    font-size: 16px; /* Precise Figma text-[16px] */
+    background: rgba(255, 231, 231, 1); /* Precise Figma bg-[rgba(255,231,231,1)] */
+    color: rgba(255, 69, 69, 1); /* Precise Figma text-[rgba(255,69,69,1)] */
+    padding-left: 10px;
+    padding-right: 10px;
+    height: 34px; /* Precise Figma h-[34px] */
+    font-family: var(--font-sans);
   }
 
   .bc-add-to-cart {
-    @apply w-full py-4 rounded-full font-semibold border-0 cursor-pointer transition-opacity;
-    font-size: clamp(0.875rem, 1.042vw, 1.75rem);
-    background: var(--color-bc-pd-ink);
-    color: white;
+    @apply w-full;
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(0, 0, 0, 1); /* Precise Figma bg-[rgba(0,0,0,1)] */
+    color: rgba(255, 255, 255, 1);
+    font-size: 20px; /* Precise Figma text-[20px] */
+    margin-top: 20px; /* Precise Figma mt-[20px] */
+    height: 60px; /* Precise Figma h-[60px] */
+    font-family: var(--font-sans);
   }
 
   .bc-add-to-cart:hover:not(:disabled) {
-    @apply opacity-90;
+    background: rgba(30, 30, 30, 1);
   }
 
   .bc-add-to-cart:disabled {
     @apply opacity-40 cursor-not-allowed;
     background: var(--color-bc-pd-border);
     color: var(--color-bc-pd-ink-secondary);
+  }
+}
+
+/* ── Animation utilities ── */
+@layer utilities {
+  .transition-fluid {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
   }
 }

@@ -15,6 +15,9 @@
     return;
   }
 
+  console.log('[BC Design] Product Detail Variants & Options:', { variants: pd.variants, options: pd.options });
+  console.log('[BC Design] Product Detail Admin Config:', pd.config);
+
   var form = root.querySelector('.bc-product-form');
   var addToCartBtn = root.querySelector('.bc-add-to-cart');
   var qtyValue = root.querySelector('.bc-qty-value');
