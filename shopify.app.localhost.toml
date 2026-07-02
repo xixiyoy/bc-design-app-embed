@@ -215,12 +215,6 @@ type = "json"
 access.admin = "merchant_read_write"
 access.storefront = "public_read"
 
-[app.metafields.app.product_detail_global_mode]
-name = "Product Detail Global Mode"
-type = "json"
-access.admin = "merchant_read_write"
-access.storefront = "public_read"
-
 [webhooks]
 api_version = "2026-07"
 
