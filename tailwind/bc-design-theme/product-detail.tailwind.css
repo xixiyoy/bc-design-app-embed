@@ -161,6 +161,15 @@
     }
   }
 
+  .bc-stage-content {
+    @apply w-full h-full absolute top-0 left-0;
+    display: none;
+  }
+
+  .bc-stage-content--active {
+    display: block !important;
+  }
+
   .product-hero-container {
     @apply absolute;
     /* Precise percentage layout corresponding to Figma: w-[341.39px] h-[500px] top-[100px] left-[208.61px] in 700px stage */

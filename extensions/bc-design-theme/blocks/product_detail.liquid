@@ -1,16 +1,22 @@
-{% assign global_config = app.metafields['$app'].product_detail_global_mode.value %}
-{% assign global_mode = global_config.mode | default: 'per_product' %}
+<!-- BC DEBUG: custom_enabled = {{ product.metafields.bc_design.enabled.value | json }}, template.name = {{ template.name }} -->
+<script>
+  console.log('%c[BC Design] App Block initialized. custom.enabled = %o, template.name = %o', 'color: #008060; font-weight: bold;', {{ product.metafields.bc_design.enabled.value | json }}, {{ template.name | json }});
+</script>
+{% assign custom_enabled = product.metafields.bc_design.enabled.value %}
 {% assign config = product.metafields['$app'].product_detail_config.value %}
 
 {% assign should_render = false %}
-{% if global_mode == 'all_on' and config != blank %}
-  {% assign should_render = true %}
-{% elsif global_mode == 'per_product' and config.enabled == true %}
+{% if custom_enabled == true %}
   {% assign should_render = true %}
 {% endif %}
 
 {% unless template.name == 'product' and should_render %}
 {% else %}
+
+{% assign three_d_image = product.metafields.bc_design.three_d_image.value %}
+{% assign parts_image = product.metafields.bc_design.parts_image.value %}
+{% assign product_video = product.metafields.bc_design.video.value %}
+{% assign product_video_url = product.metafields.bc_design.video_url.value %}
 
 <style>
   #shopify-block-{{ block.id }} {
@@ -78,50 +84,95 @@
         <!-- Image Stage -->
         <div class="product-image-stage">
 
-          <!-- 360° Badge (top-left) -->
-          <div class="bc-badge-360">
-            <img
-              src="{{ 'badge-3d.png' | asset_url }}"
-              alt="3D View"
-            >
-          </div>
-
-          <!-- Product Hero Image + 360° Play Button -->
-          <div class="product-hero-container">
-            {% if product.featured_image %}
+          <!-- 1. 3D & Featured Image Panel -->
+          <div class="bc-stage-content bc-stage-content--active" data-stage-content="3d">
+            <!-- 360° Badge (top-left) -->
+            <div class="bc-badge-360">
               <img
-                src="{{ product.featured_image | image_url: width: 1200 }}"
-                class="product-hero-img"
-                alt="{{ product.title | escape }}"
+                src="{{ 'badge-3d.png' | asset_url }}"
+                alt="3D View"
               >
-            {% else %}
-              <div class="bc-product-media__placeholder absolute top-0 left-0 w-[83%] h-full bg-bc-pd-border/30" aria-hidden="true"></div>
-            {% endif %}
+            </div>
 
-            <!-- 360° Play Button -->
+            <!-- Product Hero Image + 360° Play Button -->
+            <div class="product-hero-container">
+              {% if three_d_image != blank %}
+                <img
+                  src="{{ three_d_image | image_url: width: 1200 }}"
+                  class="product-hero-img"
+                  alt="{{ product.title | escape }}"
+                >
+              {% elsif product.featured_image %}
+                <img
+                  src="{{ product.featured_image | image_url: width: 1200 }}"
+                  class="product-hero-img"
+                  alt="{{ product.title | escape }}"
+                >
+              {% else %}
+                <div class="bc-product-media__placeholder absolute top-0 left-0 w-[83%] h-full bg-bc-pd-border/30" aria-hidden="true"></div>
+              {% endif %}
+
+              <!-- 360° Play Button -->
+              <button
+                type="button"
+                class="bc-play-btn"
+                aria-label="Play 360° view"
+              >
+                <img
+                  src="{{ 'btn-play.png' | asset_url }}"
+                  alt="Play"
+                >
+              </button>
+            </div>
+
+            <!-- Zoom Button (bottom-right) -->
             <button
               type="button"
-              class="bc-play-btn"
-              aria-label="Play 360° view"
+              class="bc-zoom-btn"
+              aria-label="Zoom image"
             >
               <img
-                src="{{ 'btn-play.png' | asset_url }}"
-                alt="Play"
+                src="{{ 'btn-zoom.png' | asset_url }}"
+                alt="Zoom"
               >
             </button>
           </div>
 
-          <!-- Zoom Button (bottom-right) -->
-          <button
-            type="button"
-            class="bc-zoom-btn"
-            aria-label="Zoom image"
-          >
-            <img
-              src="{{ 'btn-zoom.png' | asset_url }}"
-              alt="Zoom"
-            >
-          </button>
+          <!-- 2. Parts Image Panel -->
+          {% if parts_image != blank %}
+            <div class="bc-stage-content" data-stage-content="parts">
+              <div class="product-hero-container" style="width: 100%; height: 100%; top: 0; left: 0;">
+                <img
+                  src="{{ parts_image | image_url: width: 1200 }}"
+                  class="product-hero-img"
+                  style="width: 100%; height: 100%; object-fit: contain;"
+                  alt="Parts List"
+                >
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- 3. Video Panel -->
+          {% if product_video != blank or product_video_url != blank %}
+            <div class="bc-stage-content" data-stage-content="video">
+              <div class="product-hero-container" style="width: 100%; height: 100%; top: 0; left: 0;">
+                {% if product_video != blank %}
+                  {{ product_video | video_tag: autoplay: true, loop: true, muted: true, controls: true, class: "product-hero-img", style: "width: 100%; height: 100%; object-fit: contain;" }}
+                {% else %}
+                  <video
+                    src="{{ product_video_url }}"
+                    autoplay
+                    loop
+                    muted
+                    controls
+                    class="product-hero-img"
+                    style="width: 100%; height: 100%; object-fit: contain;"
+                  ></video>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+
         </div>
 
         <!-- Bottom Action Pills -->
@@ -130,14 +181,18 @@
             <img src="{{ 'tab-3d.png' | asset_url }}" style="width: clamp(20px, 1.67vw, 40px); height: clamp(20px, 1.67vw, 40px); object-fit: contain;" alt="">
             <span class="text-lg whitespace-nowrap">3D</span>
           </button>
-          <button type="button" class="bc-tab" data-tab="parts" style="width: clamp(146px, 12.17vw, 292px); height: clamp(54px, 4.5vw, 108px);">
-            <img src="{{ 'tab-parts.png' | asset_url }}" style="width: clamp(20px, 1.67vw, 40px); height: clamp(20px, 1.67vw, 40px); object-fit: contain;" alt="">
-            <span class="text-lg whitespace-nowrap">物品清单</span>
-          </button>
-          <button type="button" class="bc-tab" data-tab="video" style="width: clamp(128px, 10.67vw, 256px); height: clamp(54px, 4.5vw, 108px);">
-            <img src="{{ 'tab-video.png' | asset_url }}" style="width: clamp(24px, 2vw, 48px); height: clamp(15px, 1.25vw, 30px); object-fit: contain;" alt="">
-            <span class="text-lg whitespace-nowrap">Video</span>
-          </button>
+          {% if parts_image != blank %}
+            <button type="button" class="bc-tab" data-tab="parts" style="width: clamp(146px, 12.17vw, 292px); height: clamp(54px, 4.5vw, 108px);">
+              <img src="{{ 'tab-parts.png' | asset_url }}" style="width: clamp(20px, 1.67vw, 40px); height: clamp(20px, 1.67vw, 40px); object-fit: contain;" alt="">
+              <span class="text-lg whitespace-nowrap">物品清单</span>
+            </button>
+          {% endif %}
+          {% if product_video != blank or product_video_url != blank %}
+            <button type="button" class="bc-tab" data-tab="video" style="width: clamp(128px, 10.67vw, 256px); height: clamp(54px, 4.5vw, 108px);">
+              <img src="{{ 'tab-video.png' | asset_url }}" style="width: clamp(24px, 2vw, 48px); height: clamp(15px, 1.25vw, 30px); object-fit: contain;" alt="">
+              <span class="text-lg whitespace-nowrap">Video</span>
+            </button>
+          {% endif %}
         </div>
       </section>
 
@@ -145,7 +200,7 @@
            RIGHT: Product Information
            ═══════════════════════════════════════════════════ -->
       <section class="bc-product-detail__info">
-        <form class="bc-product-form" data-variant-id="{{ product.selected_or_first_available_variant.id }}" data-add-to-cart-text="{{ config.addToCartText | default: 'Add to cart' | escape }}">
+        <form class="bc-product-form" data-variant-id="{{ product.selected_or_first_available_variant.id }}" data-add-to-cart-text="Add to cart">
           
           <!-- Product Title -->
           <h1 class="bc-product-title">
@@ -153,10 +208,14 @@
           </h1>
 
           <!-- Rating Row -->
+          {% assign custom_subtitle = product.metafields.bc_design.subtitle.value %}
+          {% assign custom_rating = product.metafields.bc_design.rating.value %}
+          {% assign custom_features = product.metafields.bc_design.features.value %}
+          
           <div class="bc-product-subtitle-row">
-            <span>{{ config.subtitle | default: 'Conch Hotend™' }}</span>
+            <span>{{ custom_subtitle | default: 'Conch Hotend™' }}</span>
             <div>
-              <span class="bc-rating">{{ config.rating | default: '4.9' }}</span>
+              <span class="bc-rating">{{ custom_rating | default: '4.9' }}</span>
               <img
                 src="{{ 'icon-star.png' | asset_url }}"
                 alt="Rating star"
@@ -165,11 +224,11 @@
           </div>
 
           <!-- Features Card -->
-          {% if config.features.size > 0 %}
+          {% if custom_features != blank and custom_features.size > 0 %}
             <div class="bc-features-card">
               <h2>Features</h2>
               <ul>
-                {% for feature in config.features %}
+                {% for feature in custom_features %}
                   <li>{{ feature }}</li>
                 {% endfor %}
               </ul>
@@ -289,7 +348,7 @@
             class="bc-add-to-cart"
             {% unless product.selected_or_first_available_variant.available %}disabled{% endunless %}
           >
-            {{ config.addToCartText | default: "Add to cart" }}
+            Add to cart
           </button>
         </form>
       </section>

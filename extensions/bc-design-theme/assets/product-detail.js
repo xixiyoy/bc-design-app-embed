@@ -164,4 +164,26 @@
       });
     });
   }
+
+  // Tab switching logic
+  var tabs = root.querySelectorAll('.bc-tab');
+  var stageContents = root.querySelectorAll('.bc-stage-content');
+  if (tabs.length > 0 && stageContents.length > 0) {
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var targetTab = tab.dataset.tab;
+        
+        // Update active class on tab buttons
+        tabs.forEach(function (t) {
+          t.classList.toggle('bc-tab--active', t === tab);
+        });
+
+        // Toggle visibility of stage panels
+        stageContents.forEach(function (content) {
+          var isMatch = content.dataset.stageContent === targetTab;
+          content.classList.toggle('bc-stage-content--active', isMatch);
+        });
+      });
+    });
+  }
 })();
