@@ -372,6 +372,32 @@
     margin-left: var(--nav-icon-gap);
   }
 
+  .phaetus-nav-root .icon-btn--cart {
+    position: relative;
+  }
+
+  .phaetus-nav-root .cart-count-badge {
+    position: absolute;
+    top: calc(2px * var(--phaetus-scale));
+    right: calc(2px * var(--phaetus-scale));
+    min-width: calc(18px * var(--phaetus-scale));
+    height: calc(18px * var(--phaetus-scale));
+    padding: 0 calc(4px * var(--phaetus-scale));
+    border-radius: 999px;
+    background: #e53935;
+    color: #fff;
+    font-size: calc(11px * var(--phaetus-scale));
+    font-weight: 600;
+    line-height: calc(18px * var(--phaetus-scale));
+    text-align: center;
+    pointer-events: none;
+    box-sizing: border-box;
+  }
+
+  .phaetus-nav-root .cart-count-badge--hidden {
+    display: none;
+  }
+
   /* Hamburger — hidden on desktop */
   .phaetus-nav-root .hamburger {
     display: none;
@@ -600,14 +626,10 @@
 
   .phaetus-nav-root .content-list-ad-link img {
     display: block;
+    width: 100%;
     height: 100%;
-    width: auto;
-    max-width: none;
-    position: relative;
-    left: 50%;
-    transform: translateX(-50%);
+    min-height: 0;
   }
-
   /* product-card is an <a> — needs text-decoration reset */
   .phaetus-nav-root .product-card {
     position: relative;
