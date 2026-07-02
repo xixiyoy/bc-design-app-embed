@@ -19,6 +19,7 @@
   <span
     class="cart-count-badge{% if cart.item_count == 0 %} cart-count-badge--hidden{% endif %}"
     data-cart-count
+    data-count="{{ cart.item_count }}"
     aria-hidden="{% if cart.item_count == 0 %}true{% else %}false{% endif %}"
   >
     {%- if cart.item_count > 99 -%}99+{%- else -%}{{ cart.item_count }}{%- endif -%}
